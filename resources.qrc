@@ -1,0 +1,9 @@
+<RCC>
+    <qresource prefix="/">
+        <file>icons/document-new.png</file>
+        <file>icons/document-open.png</file>
+        <file>icons/preferences-desktop-locale.png</file>
+        <file>icons/system-about.png</file>
+        <file>icons/system-help.png</file>
+    </qresource>
+</RCC>

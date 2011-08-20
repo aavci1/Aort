@@ -7,6 +7,7 @@
 
 namespace Ogre {
   class Camera;
+  class SceneNode;
   class Viewport;
 }
 
@@ -20,6 +21,10 @@ public:
 protected:
   void changeEvent(QEvent *e);
 
+public slots:
+  void mouseMoved(QMouseEvent *event);
+  void wheelMoved(QWheelEvent *event);
+
 private slots:
   void open();
   void translate(QAction *action);
@@ -29,8 +34,11 @@ private slots:
   void windowCreated();
 
 private:
+  Ogre::SceneNode *cameraNode;
+  Ogre::SceneNode *objectNode;
   Ogre::Camera *camera;
   Ogre::Viewport *viewport;
+  QPoint mousePosition;
 };
 
 #endif // MAINWINDOW_H

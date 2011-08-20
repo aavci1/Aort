@@ -8,7 +8,9 @@
 #include <QLocale>
 #include <QMenu>
 #include <QMessageBox>
+#include <QMouseEvent>
 #include <QSettings>
+#include <QWheelEvent>
 
 #include <OGRE/OgreCamera.h>
 #include <OGRE/OgreEntity.h>
@@ -16,7 +18,7 @@
 #include <OGRE/OgreSceneManager.h>
 #include <OGRE/OgreViewport.h>
 
-MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), Ui::MainWindow() {
+MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), Ui::MainWindow(), cameraNode(0), objectNode(0), camera(0), viewport(0) {
   setupUi(this);
   // set window title
   setWindowTitle(tr("Untitled - Aort"));
@@ -55,6 +57,8 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), Ui::MainWindow() 
   new OgreManager(this);
   // connect ogre widget signals
   connect(ogreWidget, SIGNAL(windowCreated()), this, SLOT(windowCreated()));
+  connect(ogreWidget, SIGNAL(mouseMoved(QMouseEvent*)), this, SLOT(mouseMoved(QMouseEvent*)));
+  connect(ogreWidget, SIGNAL(wheelMoved(QWheelEvent*)), this, SLOT(wheelMoved(QWheelEvent*)));
 }
 
 MainWindow::~MainWindow() {
@@ -65,11 +69,22 @@ void MainWindow::changeEvent(QEvent *e) {
     retranslateUi(this);
 }
 
-void MainWindow::translate(QAction *action) {
-  // select language
-  LanguageManager::instance()->selectLanguage(action->data().toString());
-  // save language settings
-  QSettings().setValue("Language", action->data().toString());
+void MainWindow::mouseMoved(QMouseEvent *event) {
+  if (event->buttons() == Qt::LeftButton) {
+    // rotate camera
+    cameraNode->getParentSceneNode()->yaw(Ogre::Degree(-0.25f * (event->x() - mousePosition.x())));
+    cameraNode->getParentSceneNode()->pitch(Ogre::Degree(-0.25f * (event->y() - mousePosition.y())));
+    // update view
+    ogreWidget->update();
+  }
+  // update mouse position
+  mousePosition = event->pos();
+}
+
+void MainWindow::wheelMoved(QWheelEvent *event) {
+  cameraNode->translate(0.0f, 0.0f, -0.05f * event->delta());
+  // update view
+  ogreWidget->update();
 }
 
 void MainWindow::open() {
@@ -80,9 +95,16 @@ void MainWindow::open() {
   // update window title
   setWindowTitle(QString("%1 - Aort").arg(path));
   // delete previous entities
-  OgreManager::instance()->sceneManager()->getRootSceneNode()->removeAndDestroyAllChildren();
+  objectNode->removeAndDestroyAllChildren();
   // load and attach the new entity
-  OgreManager::instance()->sceneManager()->getRootSceneNode()->createChildSceneNode()->attachObject(OgreManager::instance()->loadMesh(path));
+  objectNode->createChildSceneNode()->attachObject(OgreManager::instance()->loadMesh(path));
+}
+
+void MainWindow::translate(QAction *action) {
+  // select language
+  LanguageManager::instance()->selectLanguage(action->data().toString());
+  // save language settings
+  QSettings().setValue("Language", action->data().toString());
 }
 
 void MainWindow::render() {
@@ -111,9 +133,14 @@ void MainWindow::windowCreated() {
   camera->setNearClipDistance(10.0f);
   camera->setFarClipDistance(10000.0f);
   camera->setAutoAspectRatio(true);
-  camera->setPosition(0.0f, 250.0f, 250.0f);
-  camera->lookAt(0, 0, 0);
   // create viewport
   viewport = ogreWidget->renderWindow()->addViewport(camera);
   viewport->setBackgroundColour(Ogre::ColourValue(0, 0, 0));
+  // create camera node
+  cameraNode = OgreManager::instance()->sceneManager()->getRootSceneNode()->createChildSceneNode()->createChildSceneNode(Ogre::Vector3(0.0f, 0.0f, 250.0f));
+  cameraNode->lookAt(Ogre::Vector3(0.0f, 0.0f, 0.0f), Ogre::SceneNode::TS_WORLD);
+  // attach camera to the node
+  cameraNode->attachObject(camera);
+  // create object node
+  objectNode = OgreManager::instance()->sceneManager()->getRootSceneNode()->createChildSceneNode();
 }

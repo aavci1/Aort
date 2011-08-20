@@ -46,6 +46,8 @@
    <addaction name="separator"/>
    <addaction name="actionLanguage"/>
    <addaction name="separator"/>
+   <addaction name="actionRender"/>
+   <addaction name="separator"/>
    <addaction name="actionHelp"/>
    <addaction name="actionAbout"/>
   </widget>
@@ -89,6 +91,15 @@
    </property>
    <property name="text">
     <string>About</string>
+   </property>
+  </action>
+  <action name="actionRender">
+   <property name="icon">
+    <iconset resource="../resources.qrc">
+     <normaloff>:/icons/image-x-generic.png</normaloff>:/icons/image-x-generic.png</iconset>
+   </property>
+   <property name="text">
+    <string>Render</string>
    </property>
   </action>
  </widget>

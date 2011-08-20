@@ -5,5 +5,6 @@
         <file>icons/preferences-desktop-locale.png</file>
         <file>icons/system-about.png</file>
         <file>icons/system-help.png</file>
+        <file>icons/image-x-generic.png</file>
     </qresource>
 </RCC>

@@ -17,6 +17,7 @@ protected:
 private slots:
   void open();
   void translate(QAction *action);
+  void render();
   void help();
   void about();
 };

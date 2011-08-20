@@ -41,6 +41,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), Ui::MainWindow() 
   connect(actionGroupLanguages, SIGNAL(triggered(QAction*)), this, SLOT(translate(QAction*)));
   // connect action handlers
   connect(actionOpen, SIGNAL(triggered()), this, SLOT(open()));
+  connect(actionRender, SIGNAL(triggered()), this, SLOT(render()));
   connect(actionHelp, SIGNAL(triggered()), this, SLOT(help()));
   connect(actionAbout, SIGNAL(triggered()), this, SLOT(about()));
 }
@@ -68,6 +69,10 @@ void MainWindow::open() {
   // update window title
   setWindowTitle(QString("%1 - Aort").arg(path));
   // TODO: load the file
+}
+
+void MainWindow::render() {
+  // TODO: render the scene
 }
 
 void MainWindow::help() {

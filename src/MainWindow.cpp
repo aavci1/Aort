@@ -46,19 +46,19 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), Ui::MainWindow(),
   QMenu *languageMenu = new QMenu(this);
   languageMenu->addActions(actionGroupLanguages->actions());
   actionLanguage->setMenu(languageMenu);
-  // connect language action handler
+  // language action handler
   connect(actionGroupLanguages, SIGNAL(triggered(QAction*)), this, SLOT(translate(QAction*)));
-  // connect action handlers
+  // main window action handlers
   connect(actionOpen, SIGNAL(triggered()), this, SLOT(open()));
   connect(actionRender, SIGNAL(triggered()), this, SLOT(render()));
   connect(actionHelp, SIGNAL(triggered()), this, SLOT(help()));
   connect(actionAbout, SIGNAL(triggered()), this, SLOT(about()));
-  // create ogre manager instance
-  new OgreManager(this);
-  // connect ogre widget signals
+  // ogre widget handlers
   connect(ogreWidget, SIGNAL(windowCreated()), this, SLOT(windowCreated()));
   connect(ogreWidget, SIGNAL(mouseMoved(QMouseEvent*)), this, SLOT(mouseMoved(QMouseEvent*)));
   connect(ogreWidget, SIGNAL(wheelMoved(QWheelEvent*)), this, SLOT(wheelMoved(QWheelEvent*)));
+  // initialize ogre manager
+  new OgreManager(this);
 }
 
 MainWindow::~MainWindow() {

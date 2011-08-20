@@ -1,6 +1,7 @@
 #include "MainWindow.h"
 
 #include "LanguageManager.h"
+#include "OgreManager.h"
 
 #include <QDesktopServices>
 #include <QFileDialog>
@@ -8,6 +9,10 @@
 #include <QMenu>
 #include <QMessageBox>
 #include <QSettings>
+
+#include <OGRE/OgreCamera.h>
+#include <OGRE/OgreRenderWindow.h>
+#include <OGRE/OgreViewport.h>
 
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), Ui::MainWindow() {
   setupUi(this);
@@ -44,6 +49,10 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), Ui::MainWindow() 
   connect(actionRender, SIGNAL(triggered()), this, SLOT(render()));
   connect(actionHelp, SIGNAL(triggered()), this, SLOT(help()));
   connect(actionAbout, SIGNAL(triggered()), this, SLOT(about()));
+  // create ogre manager instance
+  new OgreManager(this);
+  // connect ogre widget signals
+  connect(ogreWidget, SIGNAL(windowCreated()), this, SLOT(windowCreated()));
 }
 
 MainWindow::~MainWindow() {
@@ -89,4 +98,17 @@ void MainWindow::about() {
                      .arg(QCoreApplication::applicationVersion())
                      .arg(QCoreApplication::organizationName())
                      .arg(QCoreApplication::organizationDomain()));
+}
+
+void MainWindow::windowCreated() {
+  // create camera
+  camera = OgreManager::instance()->createCamera("Camera");
+  camera->setNearClipDistance(10.0f);
+  camera->setFarClipDistance(10000.0f);
+  camera->setAutoAspectRatio(true);
+  camera->setPosition(0.0f, 250.0f, 250.0f);
+  camera->lookAt(0, 0, 0);
+  // create viewport
+  viewport = ogreWidget->renderWindow()->addViewport(camera);
+  viewport->setBackgroundColour(Ogre::ColourValue(0, 0, 0));
 }

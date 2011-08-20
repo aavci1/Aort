@@ -14,6 +14,8 @@ include_directories (${CMAKE_BINARY_DIR} ${CMAKE_SOURCE_DIR}/src)
 set (SOURCES
   src/Main.cpp
   src/MainWindow.cpp
+  src/OgreManager.cpp
+  src/OgreWidget.cpp
   src/LanguageManager.cpp
 )
 # add ui files
@@ -23,6 +25,8 @@ qt4_wrap_ui (UI_SOURCES
 # add moc headers
 qt4_wrap_cpp (MOC_SOURCES
   src/MainWindow.h
+  src/OgreManager.h
+  src/OgreWidget.h
   src/LanguageManager.h
 )
 # add resources
@@ -31,4 +35,4 @@ qt4_add_resources (RESOURCES
 )
 # add executable
 add_executable (Aort WIN32 ${SOURCES} ${MOC_SOURCES} ${UI_SOURCES} ${RESOURCES} resources.rc)
-target_link_libraries (Aort ${QT_LIBRARIES})
+target_link_libraries (Aort ${QT_LIBRARIES} OgreMain)

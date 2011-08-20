@@ -143,4 +143,10 @@ void MainWindow::windowCreated() {
   cameraNode->attachObject(camera);
   // create object node
   objectNode = OgreManager::instance()->sceneManager()->getRootSceneNode()->createChildSceneNode();
+  // create a light
+  Ogre::Light *light = OgreManager::instance()->sceneManager()->createLight();
+  light->setType(Ogre::Light::LT_POINT);
+  light->setDiffuseColour(0.5f, 0.5f, 0.5f);
+  // attach light to the camera node
+  cameraNode->attachObject(light);
 }

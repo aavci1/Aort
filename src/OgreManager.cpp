@@ -5,7 +5,6 @@
 #include <OGRE/OgreCamera.h>
 #include <OGRE/OgreEntity.h>
 #include <OGRE/OgreDataStream.h>
-#include <OGRE/OgreLight.h>
 #include <OGRE/OgreMeshManager.h>
 #include <OGRE/OgreMeshSerializer.h>
 #include <OGRE/OgreRenderSystem.h>
@@ -70,11 +69,6 @@ OgreManager::OgreManager(MainWindow *parent) : QObject(parent), d(new OgreManage
   d->sceneManager->setShadowTechnique(Ogre::SHADOWTYPE_STENCIL_ADDITIVE);
   // set up ambient light
   d->sceneManager->setAmbientLight(Ogre::ColourValue(0.1f, 0.1f, 0.1f));
-  // create a light
-  Ogre::Light *light = d->sceneManager->createLight();
-  light->setType(Ogre::Light::LT_POINT);
-  light->setPosition(0.0f, 250.0f, 0.0f);
-  light->setDiffuseColour(0.5f, 0.5f, 0.5f);
 }
 
 OgreManager::~OgreManager() {

@@ -15,6 +15,7 @@ set (SOURCES
   src/Main.cpp
   src/MainWindow.cpp
   src/OgreManager.cpp
+  src/OgreRenderer.cpp
   src/OgreWidget.cpp
   src/LanguageManager.cpp
 )
@@ -26,6 +27,7 @@ qt4_wrap_ui (UI_SOURCES
 qt4_wrap_cpp (MOC_SOURCES
   src/MainWindow.h
   src/OgreManager.h
+  src/OgreRenderer.h
   src/OgreWidget.h
   src/LanguageManager.h
 )

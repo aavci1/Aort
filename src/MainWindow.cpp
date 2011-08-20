@@ -2,6 +2,7 @@
 
 #include "LanguageManager.h"
 #include "OgreManager.h"
+#include "OgreRenderer.h"
 
 #include <QDesktopServices>
 #include <QFileDialog>
@@ -108,7 +109,16 @@ void MainWindow::translate(QAction *action) {
 }
 
 void MainWindow::render() {
-  // TODO: render the scene
+  // render the scene
+  // TODO: make image size configurable
+  QImage render = OgreRenderer().render(OgreManager::instance()->sceneManager()->getRootSceneNode(), camera, 800, 545);
+  // save image file
+  QString path = QFileDialog::getSaveFileName(this, tr("Save File"), QDesktopServices::storageLocation(QDesktopServices::DocumentsLocation), tr("Image Files (*.png *.jpg *.jpeg)"));
+  // return if open canceled
+  if (path.isNull())
+    return;
+  // save the image
+  render.save(path);
 }
 
 void MainWindow::help() {

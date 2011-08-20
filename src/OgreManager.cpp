@@ -4,7 +4,10 @@
 
 #include <OGRE/OgreCamera.h>
 #include <OGRE/OgreEntity.h>
+#include <OGRE/OgreDataStream.h>
 #include <OGRE/OgreLight.h>
+#include <OGRE/OgreMeshManager.h>
+#include <OGRE/OgreMeshSerializer.h>
 #include <OGRE/OgreRenderSystem.h>
 #include <OGRE/OgreRenderWindow.h>
 #include <OGRE/OgreRoot.h>
@@ -82,6 +85,10 @@ OgreManager *OgreManager::instance() {
   return _instance;
 }
 
+Ogre::SceneManager *OgreManager::sceneManager() {
+  return d->sceneManager;
+}
+
 Ogre::RenderWindow *OgreManager::createWindow(QWidget *widget, int width, int height) {
   // create render window
   Ogre::NameValuePairList options;
@@ -105,4 +112,16 @@ Ogre::RenderWindow *OgreManager::createWindow(QWidget *widget, int width, int he
 
 Ogre::Camera *OgreManager::createCamera(QString name) {
   return d->sceneManager->createCamera(name.toStdString());
+}
+
+Ogre::Entity *OgreManager::loadMesh(QString path) {
+  Ogre::String source = path.toStdString();
+  // load the mesh file content
+  Ogre::DataStreamPtr stream(new Ogre::FileStreamDataStream(new std::ifstream(source.c_str())));
+  // create the mesh pointer
+  Ogre::MeshPtr meshPtr = Ogre::MeshManager::getSingleton().createManual(source, Ogre::ResourceGroupManager::DEFAULT_RESOURCE_GROUP_NAME);
+  // import mesh content into the mesh pointer
+  Ogre::MeshSerializer().importMesh(stream, meshPtr.getPointer());
+  // create and return an entity from the mesh
+  return d->sceneManager->createEntity(source);
 }

@@ -5,7 +5,9 @@
 
 namespace Ogre {
   class Camera;
+  class Entity;
   class RenderWindow;
+  class SceneManager;
 }
 
 class MainWindow;
@@ -21,9 +23,12 @@ public:
 
   static OgreManager *instance();
 
+  Ogre::SceneManager *sceneManager();
+
 public slots:
   Ogre::RenderWindow *createWindow(QWidget *widget, int width, int height);
   Ogre::Camera *createCamera(QString name);
+  Ogre::Entity *loadMesh(QString path);
 
 private:
   OgreManagerPrivate *d;

@@ -11,7 +11,9 @@
 #include <QSettings>
 
 #include <OGRE/OgreCamera.h>
+#include <OGRE/OgreEntity.h>
 #include <OGRE/OgreRenderWindow.h>
+#include <OGRE/OgreSceneManager.h>
 #include <OGRE/OgreViewport.h>
 
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), Ui::MainWindow() {
@@ -77,7 +79,10 @@ void MainWindow::open() {
     return;
   // update window title
   setWindowTitle(QString("%1 - Aort").arg(path));
-  // TODO: load the file
+  // delete previous entities
+  OgreManager::instance()->sceneManager()->getRootSceneNode()->removeAndDestroyAllChildren();
+  // load and attach the new entity
+  OgreManager::instance()->sceneManager()->getRootSceneNode()->createChildSceneNode()->attachObject(OgreManager::instance()->loadMesh(path));
 }
 
 void MainWindow::render() {

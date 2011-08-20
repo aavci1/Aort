@@ -21,8 +21,8 @@ int main(int argc, char **argv) {
   QLocale::setDefault(QLocale(QLocale::English, QLocale::UnitedStates));
   // create main window
   MainWindow main;
-  // show main window in maximized state
-  main.showMaximized();
+  // show main window
+  main.show();
   // start appliation event loop
   return app.exec();
 }

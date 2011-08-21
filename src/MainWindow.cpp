@@ -162,6 +162,13 @@ void MainWindow::windowCreated() {
   light->setType(Ogre::Light::LT_POINT);
   light->setDiffuseColour(0.5f, 0.5f, 0.5f);
   light->setSpecularColour(1.0f, 1.0f, 1.0f);
+  // attach the light to the scene
+  OgreManager::instance()->sceneManager()->getRootSceneNode()->createChildSceneNode(Ogre::Vector3(0.0f, 250.0f, 0.0f))->attachObject(light);
+  // create a head light
+  Ogre::Light *headLight = OgreManager::instance()->sceneManager()->createLight();
+  headLight->setType(Ogre::Light::LT_POINT);
+  headLight->setDiffuseColour(0.5f, 0.5f, 0.5f);
+  headLight->setSpecularColour(1.0f, 1.0f, 1.0f);
   // attach light to the camera node
-  cameraNode->attachObject(light);
+  cameraNode->attachObject(headLight);
 }

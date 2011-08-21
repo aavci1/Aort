@@ -102,6 +102,9 @@ public:
       }
     }
     // set full opacity
+    finalColour.r = Ogre::Math::Clamp(finalColour.r, 0.0f, 1.0f);
+    finalColour.g = Ogre::Math::Clamp(finalColour.g, 0.0f, 1.0f);
+    finalColour.b = Ogre::Math::Clamp(finalColour.b, 0.0f, 1.0f);
     finalColour.a = 1.0f;
     // return final color
     return finalColour;

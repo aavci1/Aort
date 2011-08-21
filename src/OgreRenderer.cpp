@@ -18,6 +18,8 @@
 #include <omp.h>
 #endif // !NO_OMP
 
+#define EPSILON 0.001f
+
 class OgreRendererPrivate {
 public:
   OgreRendererPrivate() : kdTree(0) {
@@ -90,7 +92,7 @@ public:
       Ogre::ColourValue specularColour = triangle->getSpecularColour(u, v);
       for (int i = 0; i < lights.size(); ++i) {
         // calculate light vector
-        Ogre::Vector3 P = ray.getPoint(t - std::numeric_limits<float>::epsilon());
+        Ogre::Vector3 P = ray.getPoint(t - EPSILON);
         Ogre::Vector3 L = lights.at(i)->getDerivedPosition() - P;
         Ogre::Real length = L.normalise();
         // calculate shade
@@ -115,7 +117,9 @@ public:
   }
 
   Ogre::Real calculateShade(const Ogre::Vector3 &P, const Ogre::Vector3 &L, Ogre::Real length) {
-    // TODO: Implement
+    // TODO: implement area lights and thus soft shadows
+    if (kdTree->hit(Ogre::Ray(P, L), EPSILON, length))
+      return 0.0f;
     return 1.0f;
   }
 

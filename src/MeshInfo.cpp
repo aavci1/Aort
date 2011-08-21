@@ -10,35 +10,96 @@
 #include <OGRE/OgreVector2.h>
 #include <OGRE/OgreVector3.h>
 
+class Vertex {
+public:
+  Vertex() : position(0.0f, 0.0f, 0.0f), normal(0.0f, 0.0f, 0.0f), texCoord(0.0f, 0.0f) {
+  }
+
+  Ogre::Vector3 position;
+  Ogre::Vector3 normal;
+  Ogre::Vector2 texCoord;
+};
+
 class MeshInfoPrivate {
 public:
-  MeshInfoPrivate() : entity(0), vertexCount(0), position(0), texCoord(0), indexCount(0), index(0), triangleCount(0), triangles(0) {
+  MeshInfoPrivate() : vertexCount(0), vertices(0), indexCount(0), indices(0), triangleCount(0), triangles(0) {
   }
 
   ~MeshInfoPrivate() {
-    delete[] position;
-    delete[] texCoord;
-    delete[] index;
+    delete[] vertices;
+    delete[] indices;
 //    for (int i = 0; i < triangleCount; ++i)
 //      delete triangles[i];
 //    delete[] triangles;
   }
 
-  const Ogre::Entity *entity;
   // vertices
   size_t vertexCount;
-  Ogre::Vector3 *position;
-  Ogre::Vector2 *texCoord;
+  Vertex *vertices;
   // indices
   size_t indexCount;
-  Ogre::uint32 *index;
+  Ogre::uint32 *indices;
   // triangles
   size_t triangleCount;
   Triangle **triangles;
 };
 
+void readPositions(Ogre::VertexData *vertexData, Vertex *vertices, size_t vertexOffset, const Ogre::Vector3 &position, const Ogre::Quaternion &orientation, const Ogre::Vector3 &scale) {
+  // get position data
+  const Ogre::VertexElement *positionElement = vertexData->vertexDeclaration->findElementBySemantic(Ogre::VES_POSITION);
+  if (positionElement) {
+    Ogre::HardwareVertexBufferSharedPtr positionBuffer = vertexData->vertexBufferBinding->getBuffer(positionElement->getSource());
+    unsigned char *positionData = static_cast<unsigned char*>(positionBuffer->lock(Ogre::HardwareBuffer::HBL_READ_ONLY));
+    for (size_t j = 0; j < vertexData->vertexCount; ++j) {
+      float *start = 0;
+      // get position data for this vertex
+      positionElement->baseVertexPointerToElement(positionData, &start);
+      vertices[vertexOffset + j].position = (orientation * (Ogre::Vector3(start[0], start[1], start[2]) * scale)) + position;
+      // advance by vertex size
+      positionData += positionBuffer->getVertexSize();
+    }
+    positionBuffer->unlock();
+  }
+}
+
+void readNormals(Ogre::VertexData *vertexData, Vertex *vertices, size_t vertexOffset, const Ogre::Vector3 &position, const Ogre::Quaternion &orientation, const Ogre::Vector3 &scale) {
+  // get normal data
+  const Ogre::VertexElement *normalElement = vertexData->vertexDeclaration->findElementBySemantic(Ogre::VES_NORMAL);
+  if (normalElement) {
+    Ogre::HardwareVertexBufferSharedPtr normalBuffer = vertexData->vertexBufferBinding->getBuffer(normalElement->getSource());
+    unsigned char *normalData = static_cast<unsigned char*>(normalBuffer->lock(Ogre::HardwareBuffer::HBL_READ_ONLY));
+    for (size_t j = 0; j < vertexData->vertexCount; ++j) {
+      float *start = 0;
+      // get normal data for this vertex
+      normalElement->baseVertexPointerToElement(normalData, &start);
+      vertices[vertexOffset + j].normal = (orientation * (Ogre::Vector3(start[0], start[1], start[2]) * scale)) + position;
+      vertices[vertexOffset + j].normal.normalise();
+      // advance by vertex size
+      normalData += normalBuffer->getVertexSize();
+    }
+    normalBuffer->unlock();
+  }
+}
+
+void readTexCoords(Ogre::VertexData *vertexData, Vertex *vertices, size_t vertexOffset) {
+  // get texCoord data
+  const Ogre::VertexElement *texCoordElement = vertexData->vertexDeclaration->findElementBySemantic(Ogre::VES_TEXTURE_COORDINATES);
+  if (texCoordElement) {
+    Ogre::HardwareVertexBufferSharedPtr texCoordBuffer = vertexData->vertexBufferBinding->getBuffer(texCoordElement->getSource());
+    unsigned char *texCoordData = static_cast<unsigned char*>(texCoordBuffer->lock(Ogre::HardwareBuffer::HBL_READ_ONLY));
+    for (size_t j = 0; j < vertexData->vertexCount; ++j) {
+      float *start = 0;
+      // get texCoord data for this vertex
+      texCoordElement->baseVertexPointerToElement(texCoordData, &start);
+      vertices[vertexOffset + j].texCoord = Ogre::Vector2(start[0], start[1]);
+      // advance by vertex size
+      texCoordData += texCoordBuffer->getVertexSize();
+    }
+    texCoordBuffer->unlock();
+  }
+}
+
 MeshInfo::MeshInfo(const Ogre::Entity *entity) : d(new MeshInfoPrivate()) {
-  d->entity = entity;
   // get position orientation and scale
   Ogre::Vector3 position = entity->getParentSceneNode()->_getDerivedPosition();
   Ogre::Quaternion orientation = entity->getParentSceneNode()->_getDerivedOrientation();
@@ -61,9 +122,8 @@ MeshInfo::MeshInfo(const Ogre::Entity *entity) : d(new MeshInfoPrivate()) {
   if (useSharedVertices)
     d->vertexCount += mesh->sharedVertexData->vertexCount;
   // create buffers
-  d->position = new Ogre::Vector3[d->vertexCount];
-  d->texCoord = new Ogre::Vector2[d->vertexCount];
-  d->index = new Ogre::uint32[d->indexCount];
+  d->vertices = new Vertex[d->vertexCount];
+  d->indices = new Ogre::uint32[d->indexCount];
   // calculate triangle count
   d->triangleCount = d->indexCount / 3;
   // create triangles array
@@ -75,36 +135,9 @@ MeshInfo::MeshInfo(const Ogre::Entity *entity) : d(new MeshInfoPrivate()) {
   size_t triangleOffset = 0;
   // extract shared vertices
   if (useSharedVertices) {
-    // get position data
-    const Ogre::VertexElement *positionElement = mesh->sharedVertexData->vertexDeclaration->findElementBySemantic(Ogre::VES_POSITION);
-    if (positionElement) {
-      Ogre::HardwareVertexBufferSharedPtr positionBuffer = mesh->sharedVertexData->vertexBufferBinding->getBuffer(positionElement->getSource());
-      unsigned char *positionData = static_cast<unsigned char*>(positionBuffer->lock(Ogre::HardwareBuffer::HBL_READ_ONLY));
-      for (size_t j = 0; j < mesh->sharedVertexData->vertexCount; ++j) {
-        float *start = 0;
-        // get position data for this vertex
-        positionElement->baseVertexPointerToElement(positionData, &start);
-        d->position[vertexOffset + j] = (orientation * (Ogre::Vector3(start[0], start[1], start[2]) * scale)) + position;
-        // advance by vertex size
-        positionData += positionBuffer->getVertexSize();
-      }
-      positionBuffer->unlock();
-    }
-    // get texture coordinate data
-    const Ogre::VertexElement *texCoordElement = mesh->sharedVertexData->vertexDeclaration->findElementBySemantic(Ogre::VES_TEXTURE_COORDINATES);
-    if (texCoordElement) {
-      Ogre::HardwareVertexBufferSharedPtr texCoordBuffer = mesh->sharedVertexData->vertexBufferBinding->getBuffer(texCoordElement->getSource());
-      unsigned char *texCoordData = static_cast<unsigned char*>(texCoordBuffer->lock(Ogre::HardwareBuffer::HBL_READ_ONLY));
-      for (size_t j = 0; j < mesh->sharedVertexData->vertexCount; ++j) {
-        float *start = 0;
-        // get texture coordinate data for this vertex
-        texCoordElement->baseVertexPointerToElement(texCoordData, &start);
-        d->texCoord[vertexOffset + j] = Ogre::Vector2(start[0], start[1]);
-        // advance by vertex size
-        texCoordData += texCoordBuffer->getVertexSize();
-      }
-      texCoordBuffer->unlock();
-    }
+    readPositions(mesh->sharedVertexData, d->vertices, vertexOffset, position, orientation, scale);
+    readNormals(mesh->sharedVertexData, d->vertices, vertexOffset, position, orientation, scale);
+    readTexCoords(mesh->sharedVertexData, d->vertices, vertexOffset);
     vertexOffset += mesh->sharedVertexData->vertexCount;
   }
   // process submeshes
@@ -112,55 +145,30 @@ MeshInfo::MeshInfo(const Ogre::Entity *entity) : d(new MeshInfoPrivate()) {
     Ogre::SubMesh *subMesh = mesh->getSubMesh(i);
     // extract vertices if not using shared vertices
     if (!subMesh->useSharedVertices) {
-      // get position data
-      const Ogre::VertexElement *positionElement = subMesh->vertexData->vertexDeclaration->findElementBySemantic(Ogre::VES_POSITION);
-      if (positionElement) {
-        Ogre::HardwareVertexBufferSharedPtr positionBuffer = subMesh->vertexData->vertexBufferBinding->getBuffer(positionElement->getSource());
-        unsigned char *positionData = static_cast<unsigned char*>(positionBuffer->lock(Ogre::HardwareBuffer::HBL_READ_ONLY));
-        for (size_t j = 0; j < subMesh->vertexData->vertexCount; ++j) {
-          float *start = 0;
-          // get position data for this vertex
-          positionElement->baseVertexPointerToElement(positionData, &start);
-          d->position[vertexOffset + j] = (orientation * (Ogre::Vector3(start[0], start[1], start[2]) * scale)) + position;
-          // advance by vertex size
-          positionData += positionBuffer->getVertexSize();
-        }
-        positionBuffer->unlock();
-      }
-      // get texture coordinate data
-      const Ogre::VertexElement *texCoordElement = subMesh->vertexData->vertexDeclaration->findElementBySemantic(Ogre::VES_TEXTURE_COORDINATES);
-      if (texCoordElement) {
-        Ogre::HardwareVertexBufferSharedPtr texCoordBuffer = subMesh->vertexData->vertexBufferBinding->getBuffer(texCoordElement->getSource());
-        unsigned char *texCoordData = static_cast<unsigned char*>(texCoordBuffer->lock(Ogre::HardwareBuffer::HBL_READ_ONLY));
-        for (size_t j = 0; j < subMesh->vertexData->vertexCount; ++j) {
-          float *start = 0;
-          // get texture coordinate data for this vertex
-          texCoordElement->baseVertexPointerToElement(texCoordData, &start);
-          d->texCoord[vertexOffset + j] = Ogre::Vector2(start[0], start[1]);
-          // advance by vertex size
-          texCoordData += texCoordBuffer->getVertexSize();
-        }
-        texCoordBuffer->unlock();
-      }
+      readPositions(subMesh->vertexData, d->vertices, vertexOffset, position, orientation, scale);
+      readNormals(subMesh->vertexData, d->vertices, vertexOffset, position, orientation, scale);
+      readTexCoords(subMesh->vertexData, d->vertices, vertexOffset);
     }
     // extract indices
     Ogre::HardwareIndexBufferSharedPtr indexBuffer = subMesh->indexData->indexBuffer;
     if (indexBuffer->getType() == Ogre::HardwareIndexBuffer::IT_32BIT) {
       Ogre::uint32 *indexData = static_cast<Ogre::uint32 *>(indexBuffer->lock(Ogre::HardwareBuffer::HBL_READ_ONLY));
       for (size_t j = 0; j < subMesh->indexData->indexCount; ++j)
-        d->index[indexOffset + j] = indexData[subMesh->indexData->indexStart + j] + (subMesh->useSharedVertices ? 0 : vertexOffset);
+        d->indices[indexOffset + j] = indexData[subMesh->indexData->indexStart + j] + (subMesh->useSharedVertices ? 0 : vertexOffset);
       indexBuffer->unlock();
     } else {
       Ogre::uint16 *indexData = static_cast<Ogre::uint16 *>(indexBuffer->lock(Ogre::HardwareBuffer::HBL_READ_ONLY));
       for (size_t j = 0; j < subMesh->indexData->indexCount; ++j)
-        d->index[indexOffset + j] = indexData[subMesh->indexData->indexStart + j] + (subMesh->useSharedVertices ? 0 : vertexOffset);
+        d->indices[indexOffset + j] = indexData[subMesh->indexData->indexStart + j] + (subMesh->useSharedVertices ? 0 : vertexOffset);
       indexBuffer->unlock();
     }
     // fill in the triangles array
-    for (int j = 0; j < subMesh->indexData->indexCount / 3; ++j)
-      d->triangles[triangleOffset + j] = new Triangle(d->position[indexOffset + d->index[j * 3 + 0]], d->position[indexOffset + d->index[j * 3 + 1]], d->position[indexOffset + d->index[j * 3 + 2]],
-          d->texCoord[d->index[indexOffset + j * 3 + 0]], d->texCoord[indexOffset + d->index[j * 3 + 1]], d->texCoord[indexOffset + d->index[j * 3 + 2]],
-          subMesh->getMaterialName());
+    for (int j = 0; j < subMesh->indexData->indexCount / 3; ++j) {
+      const Vertex &v1 = d->vertices[indexOffset + d->indices[j * 3 + 0]];
+      const Vertex &v2 = d->vertices[indexOffset + d->indices[j * 3 + 1]];
+      const Vertex &v3 = d->vertices[indexOffset + d->indices[j * 3 + 2]];
+      d->triangles[triangleOffset + j] = new Triangle(v1.position, v2.position, v3.position, v1.normal, v2.normal, v3.normal, v1.texCoord, v2.texCoord, v3.texCoord, subMesh->getMaterialName());
+    }
     // update vertex and index offsets
     if (!subMesh->useSharedVertices)
       vertexOffset += subMesh->vertexData->vertexCount;

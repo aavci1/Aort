@@ -8,6 +8,7 @@ class TrianglePrivate;
 class Triangle {
 public:
   Triangle(const Ogre::Vector3 &p1, const Ogre::Vector3 &p2, const Ogre::Vector3 &p3,
+           const Ogre::Vector3 &n1, const Ogre::Vector3 &n2, const Ogre::Vector3 &n3,
            const Ogre::Vector2 &uv1, const Ogre::Vector2 &uv2, const Ogre::Vector2 &uv3,
            const Ogre::String materialName);
   ~Triangle();

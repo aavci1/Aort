@@ -87,7 +87,6 @@ void KdTreeNode::split(const Ogre::AxisAlignedBox &aabb, const int depth) {
   // update axis, if third axis is longer
   if (size[2] > size[axis()])
     setAxis(2);
-
   int mSplitAxis = axis();
   Ogre::Real a = size[(mSplitAxis + 1) % 3];
   Ogre::Real b = size[(mSplitAxis + 2) % 3];
@@ -103,9 +102,9 @@ void KdTreeNode::split(const Ogre::AxisAlignedBox &aabb, const int depth) {
   Ogre::Real *maximums2 = new Ogre::Real[triangleCount];
   for (unsigned int i = 0; i < triangleCount; ++i) {
     Ogre::Real minimum = std::min(std::min(mTriangles[i]->position(0)[mSplitAxis], mTriangles[i]->position(1)[mSplitAxis]),
-                             mTriangles[i]->position(2)[mSplitAxis]);
+                                  mTriangles[i]->position(2)[mSplitAxis]);
     Ogre::Real maximum = std::max(std::max(mTriangles[i]->position(0)[mSplitAxis], mTriangles[i]->position(1)[mSplitAxis]),
-                             mTriangles[i]->position(2)[mSplitAxis]);
+                                  mTriangles[i]->position(2)[mSplitAxis]);
     minimums[i] = minimum;
     maximums[i] = maximum;
     minimums2[i] = minimum;

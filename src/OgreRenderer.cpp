@@ -37,19 +37,16 @@ public:
   }
 
   void buildTree() {
-    // build a sah optimized kd-tree
-    for (int i = 0; i < entities.size(); ++i) {
-      KdTreeNode *tree = new KdTreeNode(MeshInfo(entities.at(i)).triangles());
-      tree->subdivide(entities.at(i)->getWorldBoundingBox(), 0);
-      trees.append(tree);
-    }
+    // build a kd-tree for each entity
+    for (int i = 0; i < entities.size(); ++i)
+      trees.append(new KdTreeNode(entities.at(i)->getWorldBoundingBox(), MeshInfo(entities.at(i)).triangles()));
   }
 
   Ogre::ColourValue traceRay(const Ogre::Ray &ray) {
     // trace ray using the kd-tree
     for (int i = 0; i < entities.size(); ++i) {
       if (ray.intersects(entities.at(i)->getWorldBoundingBox(true)).first)
-        if (trees.at(i)->anyHit(ray))
+        if (trees.at(i)->intersects(ray))
           return Ogre::ColourValue::White;
     }
     // TODO: return background color
@@ -93,6 +90,13 @@ QImage OgreRenderer::render(Ogre::SceneNode *root, const Ogre::Camera *camera, c
       scanline[x * 4 + 3] = colour.a * 255;
     }
   }
+  // free memory
+  qDeleteAll(d->trees);
+  // clean up
+  d->entities.clear();
+  d->trees.clear();
+  d->lights.clear();
+  // return result
   return result;
 }
 

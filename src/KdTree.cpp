@@ -5,25 +5,64 @@
 #include <OGRE/OgreAxisAlignedBox.h>
 #include <OGRE/OgreRay.h>
 
-void KdTreeNode::subdivide(Ogre::AxisAlignedBox aabb, int depth) {
+KdTreeNode::KdTreeNode() : mData(6), mSplitPosition(0) {
+}
+
+KdTreeNode::KdTreeNode(const Ogre::AxisAlignedBox &aabb, const void *pointer) : mData(6), mSplitPosition(0) {
+  setPointer(pointer);
+  split(aabb, 0);
+}
+
+const bool KdTreeNode::intersects(const Ogre::Ray &ray, const float t_min, const float t_max) const {
+  // if leaf, check triangle list for intersection
+  if (isLeaf()) {
+    for (Triangle **it = triangles(); *it != 0; ++it)
+      if ((*it)->intersects(ray))
+        return true;
+    // no hit, return false
+    return false;
+  }
+  KdTreeNode *near = (ray.getDirection()[axis()] > 0) ? nodes() + 0 : nodes() + 1;
+  KdTreeNode *far = (ray.getDirection()[axis()] > 0) ? nodes() + 1 : nodes() + 0;
+  float t_split = (mSplitPosition - ray.getOrigin()[axis()]) / ray.getDirection()[axis()];
+  if (t_min < t_split && t_max < t_split) {
+    if (near->intersects(ray, t_min, t_max))
+      return true;
+    // no hit, return false
+    return false;
+  }
+  if (t_min > t_split && t_max > t_split) {
+    if (far->intersects(ray, t_min, t_max))
+      return true;
+    // no hit, return false
+    return false;
+  }
+  if (near->intersects(ray, t_min, t_split))
+    return true;
+  if (far->intersects(ray, t_split, t_max))
+    return true;
+  // no hit, return false
+  return false;
+}
+
+void KdTreeNode::split(const Ogre::AxisAlignedBox &aabb, const int depth) {
   Ogre::Vector3 size = aabb.getSize();
-  float a = 0, b = 0;
   // subdivision will use the longest axis of the bounding box
   if ((size.x >= size.y) && (size.x >= size.z)) {
-    axis(0);
+    setAxis(0);
   }  else if ((size.y >= size.x) && (size.y >= size.z)) {
-    axis(1);
+    setAxis(1);
   } else {
-    axis(2);
+    setAxis(2);
   }
-  int mSplitAxis = getAxis();
-  a = size[(mSplitAxis + 1) % 3];
-  b = size[(mSplitAxis + 2) % 3];
+  int mSplitAxis = axis();
+  float a = size[(mSplitAxis + 1) % 3];
+  float b = size[(mSplitAxis + 2) % 3];
   float boxMinimum = aabb.getMinimum()[mSplitAxis];
   float boxMaximum = aabb.getMaximum()[mSplitAxis];
   std::vector<float> splitCandidates;
   unsigned int triangleCount;
-  Triangle **mTriangles = (Triangle **)pointer();
+  Triangle **mTriangles = triangles();
   for (triangleCount = 0; mTriangles[triangleCount] != 0; triangleCount++);
   float *minimums = new float[triangleCount];
   float *maximums = new float[triangleCount];
@@ -116,7 +155,7 @@ void KdTreeNode::subdivide(Ogre::AxisAlignedBox aabb, int depth) {
   }
   if (depth < MAXIMUM_DEPTH && leftCount > MINIMUM_TRIANGLES_PER_LEAF) {
     // subdivide left node
-    mLeftNode->subdivide(lbb, depth + 1);
+    mLeftNode->split(lbb, depth + 1);
   }
   // set bounding box
   Ogre::AxisAlignedBox rbb = aabb;
@@ -129,7 +168,7 @@ void KdTreeNode::subdivide(Ogre::AxisAlignedBox aabb, int depth) {
   }
   if (depth < MAXIMUM_DEPTH && rightCount > MINIMUM_TRIANGLES_PER_LEAF) {
     // subdivide node
-    mRightNode->subdivide(rbb, depth + 1);
+    mRightNode->split(rbb, depth + 1);
   }
   // remove triangles from this node
   delete[] triangles;
@@ -139,75 +178,30 @@ void KdTreeNode::subdivide(Ogre::AxisAlignedBox aabb, int depth) {
   delete[] maximums2;
 }
 
-bool KdTreeNode::anyHit(const Ogre::Ray &ray, const float t_min, const float t_max) {
-  if (isLeaf()) {
-    // check each triangle for intersection
-    for (Triangle **it = (Triangle**)pointer(); *it != 0; ++it) {
-      if ((*it)->intersects(ray)) {
-        return true;
-      }
-    }
-    return false;
-  }
-  KdTreeNode *n = (ray.getDirection()[getAxis()] > 0) ? (KdTreeNode*)pointer() + 0 : (KdTreeNode*)pointer() + 1;
-  KdTreeNode *f = (ray.getDirection()[getAxis()] > 0) ? (KdTreeNode*)pointer() + 1 : (KdTreeNode*)pointer() + 0;
-  float t_split = (mSplitPosition - ray.getOrigin()[getAxis()]) / ray.getDirection()[getAxis()];
-  if (t_min < t_split && t_max < t_split) {
-    if (n->anyHit(ray, t_min, t_max)) {
-      return true;
-    }
-    return false;
-  }
-  if (t_min > t_split && t_max > t_split) {
-    if (f->anyHit(ray, t_min, t_max)) {
-      return true;
-    }
-    return false;
-  }
-  if (n->anyHit(ray, t_min, t_split)) {
-    return true;
-  }
-  if (f->anyHit(ray, t_split, t_max)) {
-    return true;
-  }
-  return false;
+const bool KdTreeNode::isLeaf() const {
+  return ((mData & 4) > 0);
 }
 
-bool KdTreeNode::closestHit(const Ogre::Ray &ray, Triangle **triangle, float *t, float *u, float *v, float t_min, float t_max) {
-  if (isLeaf()) {
-    float nearestT = FLT_MAX;
-    // check each triangle for intersection
-    for (Triangle **it = (Triangle**)pointer(); *it != 0; ++it) {
-      float t1 = 0, u1 = 0, v1 = 0;
-      bool test = (*it)->intersects(ray, t1, u1, v1);
-      if (test && t1 < nearestT) {
-        if (t1 - t_min >= -0.00001 && t_max - t1 >= -0.00001) {
-          nearestT = t1;
-          *triangle = *it;
-          *t = t1;
-          *u = u1;
-          *v = v1;
-        }
-      }
-    }
-    return (nearestT != FLT_MAX);
-  }
-  KdTreeNode *n = (ray.getDirection()[getAxis()] > 0) ? (KdTreeNode*)pointer() + 0 : (KdTreeNode*)pointer() + 1;
-  KdTreeNode *f = (ray.getDirection()[getAxis()] > 0) ? (KdTreeNode*)pointer() + 1 : (KdTreeNode*)pointer() + 0;
-  float t_split = (mSplitPosition - ray.getOrigin()[getAxis()]) / ray.getDirection()[getAxis()];
-  if (t_min < t_split && t_max < t_split) {
-    if (n->closestHit(ray, triangle, t, u, v, t_min, t_max))
-      return true;
-    return false;
-  }
-  if (t_min > t_split && t_max > t_split) {
-    if (f->closestHit(ray, triangle, t, u, v, t_min, t_max))
-      return true;
-    return false;
-  }
-  if (n->closestHit(ray, triangle, t, u, v, t_min, t_split))
-    return true;
-  if (f->closestHit(ray, triangle, t, u, v, t_split, t_max))
-    return true;
-  return false;
+void KdTreeNode::setLeaf(const bool leaf) {
+  mData = (leaf) ? (mData | 4) : (mData & 0xfffffffb);
+}
+
+const int KdTreeNode::axis() const {
+  return mData & 3;
+}
+
+void KdTreeNode::setAxis(const int axis) {
+  mData = (mData & 0xfffffffc) + axis;
+}
+
+KdTreeNode *KdTreeNode::nodes() const {
+  return (KdTreeNode *)(mData & 0xfffffff8);
+}
+
+Triangle **KdTreeNode::triangles() const {
+  return (Triangle **)(mData & 0xfffffff8);
+}
+
+void KdTreeNode::setPointer(const void *pointer) {
+  mData = (unsigned long)pointer + (mData & 7);
 }

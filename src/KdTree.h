@@ -15,40 +15,26 @@ namespace Ogre {
 
 class KdTreeNode {
 public:
-  // constructor
-  KdTreeNode() : mData(6), mSplitPosition(0) { }
-  KdTreeNode(void *pointer) : mData(6), mSplitPosition(0) {
-    setPointer(pointer);
-  }
-  // functions
-  void subdivide(Ogre::AxisAlignedBox aabb, int depth);
-  bool anyHit(const Ogre::Ray &ray, const float t_min = 0.0f, const float t_max = FLT_MAX);
+  KdTreeNode();
+  KdTreeNode(const Ogre::AxisAlignedBox &aabb, const void *pointer);
+
+  const bool intersects(const Ogre::Ray &ray, const float t_min = 0.0f, const float t_max = FLT_MAX) const;
+
 private:
-  bool closestHit(const Ogre::Ray &ray, Triangle **triangle, float *t, float *u, float *v, float t_min = 0.0f, float t_max = FLT_MAX);
+  void split(const Ogre::AxisAlignedBox &aabb, const int depth);
 
-  bool isLeaf() {
-    return ((mData & 4) > 0);
-  }
-  void setLeaf(bool leaf) {
-    mData = (leaf) ? (mData | 4) : (mData & 0xfffffffb);
-  }
+  const bool isLeaf() const;
+  void setLeaf(const bool leaf);
 
-  void axis(int axis) {
-    mData = (mData & 0xfffffffc) + axis;
-  }
-  int getAxis() {
-    return mData & 3;
-  }
+  const int axis() const;
+  void setAxis(const int axis);
 
-  // sets the pointer to the either triangles or the child nodes
-  void setPointer(void *pointer) {
-    mData = (unsigned long)pointer + (mData & 7);
-  }
-  // returns the pointer to the either triangles or the child nodes
-  void *pointer() {
-    return (void*)(mData & 0xfffffff8);
-  }
-  // members
+  KdTreeNode *nodes() const;
+  Triangle **triangles() const;
+
+  void setPointer(const void *pointer);
+
+private:
   unsigned long mData;
   float mSplitPosition;
 };

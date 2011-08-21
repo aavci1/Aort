@@ -77,35 +77,41 @@ public:
     kdTree = new KdTreeNode(aabb, triangles);
   }
 
-  Ogre::ColourValue traceRay(const Ogre::Ray &ray) {
+  Ogre::ColourValue traceRay(const Ogre::Ray &ray, int depth = 0) {
     // TODO: initialize color as background color
     Ogre::ColourValue finalColour = Ogre::ColourValue::Black;
     // trace ray using the kd-tree
     Triangle *triangle = 0;
     Ogre::Real t = FLT_MAX, u = 0, v = 0;
+    // calculate view vector
+    Ogre::Vector3 V = ray.getDirection();
     if (kdTree->hit(ray, triangle, t, u, v)) {
       // add ambient lighting
       finalColour += calculateAmbient() * triangle->getAmbientColour(u, v);
+      // calculate hit point
+      Ogre::Vector3 P = ray.getPoint(t - EPSILON);
       // calculate triangle normal
       Ogre::Vector3 N = triangle->normal(u, v);
       Ogre::ColourValue diffuseColour = triangle->getDiffuseColour(u, v);
       Ogre::ColourValue specularColour = triangle->getSpecularColour(u, v);
       for (int i = 0; i < lights.size(); ++i) {
         // calculate light vector
-        Ogre::Vector3 P = ray.getPoint(t - EPSILON);
         Ogre::Vector3 L = lights.at(i)->getDerivedPosition() - P;
         Ogre::Real length = L.normalise();
         // calculate shade
         Ogre::Real shade = calculateShade(P, L, length);
         if (shade > std::numeric_limits<float>::epsilon()) {
-          // calculate view vector
-          Ogre::Vector3 V = ray.getDirection();
-          // add diffuse lighting
+          // add diffuse
           finalColour += shade * calculateDiffuse(N, L) * diffuseColour * lights.at(i)->getDiffuseColour();
+          // add specular
           finalColour += shade * calculateSpecular(V, N, L) * specularColour * lights.at(i)->getSpecularColour();
         }
-        // TODO: calculate reflections
       }
+      // TODO: make maxDepth configurable
+      int maxDepth = 3;
+      // add reflections
+      if (depth < maxDepth)
+        finalColour += triangle->getReflectivity() * calculateReflection(P, V, N, depth) * diffuseColour;
     }
     // set full opacity
     finalColour.r = Ogre::Math::Clamp(finalColour.r, 0.0f, 1.0f);
@@ -135,11 +141,19 @@ public:
   }
 
   Ogre::Real calculateSpecular(const Ogre::Vector3 &V, const Ogre::Vector3 &N, const Ogre::Vector3 &L) {
+    // TODO: make specular configurable
     Ogre::Vector3 R = L - 2.0f * N.dotProduct(L) * N;
     float dot = V.dotProduct(R);
     if (dot > 0)
       return  dot / (50 - 50 * dot + dot);
     return 0;
+  }
+
+  Ogre::ColourValue calculateReflection(const Ogre::Vector3 &P, const Ogre::Vector3 &V, const Ogre::Vector3 &N, int depth = 0) {
+    // calculate reflection vector
+    Ogre::Vector3 R = V - 2.0f * N.dotProduct(V) * N;
+    // TODO: Implement diffuse (scattered) reflections
+    return traceRay(Ogre::Ray(P + R * EPSILON, R), depth + 1);
   }
 
   QList<Ogre::Entity *> entities;

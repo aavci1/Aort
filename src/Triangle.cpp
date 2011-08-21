@@ -103,6 +103,11 @@ const Ogre::ColourValue Triangle::getSpecularColour(const Ogre::Real u, const Og
   return Ogre::ColourValue::White;
 }
 
+const Ogre::Real Triangle::getReflectivity() const {
+  // TODO: Implement
+  return 0.25f;
+}
+
 const bool Triangle::intersects(const Ogre::Ray &ray, Ogre::Real &t, Ogre::Real &u, Ogre::Real &v) const {
   t = -(ray.getOrigin() - d->positions[0]).dotProduct(d->normal) / ray.getDirection().dotProduct(d->normal);
   if (t < std::numeric_limits<float>::epsilon())

@@ -21,6 +21,7 @@ public:
   const Ogre::ColourValue getAmbientColour(const Ogre::Real u, const Ogre::Real v) const;
   const Ogre::ColourValue getDiffuseColour(const Ogre::Real u, const Ogre::Real v) const;
   const Ogre::ColourValue getSpecularColour(const Ogre::Real u, const Ogre::Real v) const;
+  const Ogre::Real getReflectivity() const;
 
   const bool intersects(const Ogre::Ray &ray, Ogre::Real &t, Ogre::Real &u, Ogre::Real &v) const;
 

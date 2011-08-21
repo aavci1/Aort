@@ -10,6 +10,10 @@
 #include <OGRE/OgreMovableObject.h>
 #include <OGRE/OgreSceneNode.h>
 
+#ifndef NO_OMP
+#include <omp.h>
+#endif // !NO_OMP
+
 class OgreRendererPrivate {
 public:
   OgreRendererPrivate() {
@@ -75,6 +79,9 @@ QImage OgreRenderer::render(Ogre::SceneNode *root, const Ogre::Camera *camera, c
   // precalculate 1/width and 1/height
   float inverseWidth = 1.0f / width;
   float inverseHeight = 1.0f / height;
+#ifndef NO_OMP
+  #pragma omp parallel for
+#endif // !NO_OMP
   // start rendering
   for (int y = 0; y < height; ++y) {
     uchar *scanline = result.scanLine(y);

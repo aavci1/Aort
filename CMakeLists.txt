@@ -10,6 +10,8 @@ set (QT_USE_QTXML TRUE)
 include (${QT_USE_FILE})
 
 include_directories (${CMAKE_BINARY_DIR} ${CMAKE_SOURCE_DIR}/src)
+# enable openmp support
+set (CMAKE_CXX_FLAGS "-fopenmp")
 # add sources
 set (SOURCES
   src/KdTree.cpp

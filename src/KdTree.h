@@ -18,7 +18,8 @@ public:
   KdTreeNode();
   KdTreeNode(const Ogre::AxisAlignedBox &aabb, const void *pointer);
 
-  const bool intersects(const Ogre::Ray &ray, const float t_min = 0.0f, const float t_max = FLT_MAX) const;
+  const bool hit(const Ogre::Ray &ray, Triangle *&triangle, float &t, float &u, float &v, const float t_min = 0.0f, const float t_max = FLT_MAX) const;
+  const bool hit(const Ogre::Ray &ray, const float t_min = 0.0f, const float t_max = FLT_MAX) const;
 
 private:
   void split(const Ogre::AxisAlignedBox &aabb, const int depth);

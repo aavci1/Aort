@@ -75,7 +75,9 @@ public:
 
   Ogre::ColourValue traceRay(const Ogre::Ray &ray) {
     // trace ray using the kd-tree
-    if (kdTree->intersects(ray))
+    Triangle *triangle = 0;
+    Ogre::Real t = FLT_MAX, u = 0, v = 0;
+    if (kdTree->hit(ray, triangle, t, u, v))
       return Ogre::ColourValue::White;
     // TODO: return background color
     return Ogre::ColourValue::Black;

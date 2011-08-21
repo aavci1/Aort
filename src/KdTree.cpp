@@ -13,7 +13,42 @@ KdTreeNode::KdTreeNode(const Ogre::AxisAlignedBox &aabb, const void *pointer) : 
   split(aabb, 0);
 }
 
-const bool KdTreeNode::intersects(const Ogre::Ray &ray, const float t_min, const float t_max) const {
+const bool KdTreeNode::hit(const Ogre::Ray &ray, Triangle *&triangle, float &t, float &u, float &v, const float t_min, const float t_max) const {
+  // if leaf, check triangle list for intersection
+  if (isLeaf()) {
+    t = FLT_MAX;
+    for (Triangle **it = triangles(); *it != 0; ++it) {
+      Ogre::Real _t = FLT_MAX, _u = 0, _v = 0;
+      if ((*it)->intersects(ray, _t, _u, _v) && _t < t) {
+        triangle = *it;
+        t = _t;
+        u = _u;
+        v = _v;
+      }
+    }
+    // return result
+    return (t != FLT_MAX);
+  }
+  KdTreeNode *near = (ray.getDirection()[axis()] > 0) ? nodes() + 0 : nodes() + 1;
+  KdTreeNode *far = (ray.getDirection()[axis()] > 0) ? nodes() + 1 : nodes() + 0;
+  // calculate distance to the split plane
+  float t_split = (splitPosition - ray.getOrigin()[axis()]) / ray.getDirection()[axis()];
+  // only intersects near node
+  if (t_min < t_split && t_max < t_split)
+    return near->hit(ray, triangle, t, u, v, t_min, t_max);
+  // only intersects far node
+  if (t_min > t_split && t_max > t_split)
+    return far->hit(ray, triangle, t, u, v, t_min, t_max);
+  // intersects both
+  if (near->hit(ray, triangle, t, u, v, t_min, t_split))
+    return true;
+  if (far->hit(ray, triangle, t, u, v, t_split, t_max))
+    return true;
+  // no hit, return false
+  return false;
+}
+
+const bool KdTreeNode::hit(const Ogre::Ray &ray, const float t_min, const float t_max) const {
   // if leaf, check triangle list for intersection
   if (isLeaf()) {
     for (Triangle **it = triangles(); *it != 0; ++it)
@@ -28,14 +63,14 @@ const bool KdTreeNode::intersects(const Ogre::Ray &ray, const float t_min, const
   float t_split = (splitPosition - ray.getOrigin()[axis()]) / ray.getDirection()[axis()];
   // only intersects near node
   if (t_min < t_split && t_max < t_split)
-    return near->intersects(ray, t_min, t_max);
+    return near->hit(ray, t_min, t_max);
   // only intersects far node
   if (t_min > t_split && t_max > t_split)
-    return far->intersects(ray, t_min, t_max);
+    return far->hit(ray, t_min, t_max);
   // intersects both
-  if (near->intersects(ray, t_min, t_split))
+  if (near->hit(ray, t_min, t_split))
     return true;
-  if (far->intersects(ray, t_split, t_max))
+  if (far->hit(ray, t_split, t_max))
     return true;
   // no hit, return false
   return false;

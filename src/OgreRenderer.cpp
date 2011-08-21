@@ -82,21 +82,25 @@ public:
     Triangle *triangle = 0;
     Ogre::Real t = FLT_MAX, u = 0, v = 0;
     if (kdTree->hit(ray, triangle, t, u, v)) {
+      // add ambient lighting
+      finalColour += calculateAmbient() * triangle->getAmbientColour(u, v);
+      // calculate triangle normal
+      Ogre::Vector3 N = triangle->normal(u, v);
+      Ogre::ColourValue diffuseColour = triangle->getDiffuseColour(u, v);
+      Ogre::ColourValue specularColour = triangle->getSpecularColour(u, v);
       for (int i = 0; i < lights.size(); ++i) {
+        // calculate light vector
+        Ogre::Vector3 P = ray.getPoint(t - std::numeric_limits<float>::epsilon());
+        Ogre::Vector3 L = lights.at(i)->getDerivedPosition() - P;
+        Ogre::Real length = L.normalise();
         // calculate shade
-        Ogre::Real shade = calculateShade();
-        if (shade > 0.0f) {
-          // calculate normal vector
-          Ogre::Vector3 N = triangle->normal(u, v);
-          // calculate light vector
-          Ogre::Vector3 L = (lights.at(i)->getDerivedPosition() - ray.getPoint(t)).normalisedCopy();
+        Ogre::Real shade = calculateShade(P, L, length);
+        if (shade > std::numeric_limits<float>::epsilon()) {
           // calculate view vector
           Ogre::Vector3 V = ray.getDirection();
-          // calculate lighting
-          finalColour += calculateAmbient() * triangle->getAmbientColour(u, v);
-          finalColour += calculateDiffuse(N, L) * triangle->getDiffuseColour(u, v) * lights.at(i)->getDiffuseColour();
-          finalColour += calculateSpecular(V, N, L) * triangle->getSpecularColour(u, v) * lights.at(i)->getSpecularColour();
-          finalColour *= shade;
+          // add diffuse lighting
+          finalColour += shade * calculateDiffuse(N, L) * diffuseColour * lights.at(i)->getDiffuseColour();
+          finalColour += shade * calculateSpecular(V, N, L) * specularColour * lights.at(i)->getSpecularColour();
         }
         // TODO: calculate reflections
       }
@@ -110,7 +114,7 @@ public:
     return finalColour;
   }
 
-  Ogre::Real calculateShade() {
+  Ogre::Real calculateShade(const Ogre::Vector3 &P, const Ogre::Vector3 &L, Ogre::Real length) {
     // TODO: Implement
     return 1.0f;
   }

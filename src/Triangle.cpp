@@ -123,26 +123,3 @@ const bool Triangle::intersects(const Ogre::Ray &ray, Ogre::Real &t, Ogre::Real 
   // ray intersects triangle
   return true;
 }
-
-const bool Triangle::intersects(const Ogre::Ray &ray) const {
-  Ogre::Real t, u, v;
-  t = -(ray.getOrigin() - d->positions[0]).dotProduct(d->normal) / ray.getDirection().dotProduct(d->normal);
-  if (t < std::numeric_limits<float>::epsilon())
-    return false;
-  // calculate hit point
-  Ogre::Vector3 hit = ray.getPoint(t) - d->positions[0];
-  // calculate u
-  u = (d->b[d->uAxis] * hit[d->vAxis] - d->b[d->vAxis] * hit[d->uAxis]) * d->inv_det;
-  if (u < 0)
-    return false;
-  // calculate v
-  v = (d->c[d->vAxis] * hit[d->uAxis] - d->c[d->uAxis] * hit[d->vAxis]) * d->inv_det;
-  if (v < 0)
-    return false;
-  // u + v should be less than or equal to 1
-  if (u + v > 1)
-    return false;
-  // ray intersects triangle
-  return true;
-//  return Ogre::Math::intersects(ray, d->position[0], d->position[1], d->position[2], true, false).first;
-}

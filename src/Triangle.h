@@ -23,7 +23,6 @@ public:
   const Ogre::ColourValue getSpecularColour(const Ogre::Real u, const Ogre::Real v) const;
 
   const bool intersects(const Ogre::Ray &ray, Ogre::Real &t, Ogre::Real &u, Ogre::Real &v) const;
-  const bool intersects(const Ogre::Ray &ray) const;
 
 private:
   TrianglePrivate *d;

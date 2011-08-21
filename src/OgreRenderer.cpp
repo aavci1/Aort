@@ -10,6 +10,8 @@
 #include <OGRE/OgreMovableObject.h>
 #include <OGRE/OgreSceneNode.h>
 
+#include <limits>
+
 #ifndef NO_OMP
 #include <omp.h>
 #endif // !NO_OMP
@@ -87,7 +89,9 @@ QImage OgreRenderer::render(Ogre::SceneNode *root, const Ogre::Camera *camera, c
     uchar *scanline = result.scanLine(y);
     for (int x = 0; x < width; ++x) {
       // create camera to viewport ray
-      Ogre::Ray ray = camera->getCameraToViewportRay(x * inverseWidth, y * inverseHeight);
+      // and make sure that rays are not parallel to any axis
+      Ogre::Ray ray = camera->getCameraToViewportRay(x * inverseWidth + std::numeric_limits<float>::epsilon(),
+                                                     y * inverseHeight + std::numeric_limits<float>::epsilon());
       // trace the ray
       Ogre::ColourValue colour = d->traceRay(ray);
       // update image

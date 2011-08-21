@@ -9,6 +9,7 @@
 #include <OGRE/OgreEntity.h>
 #include <OGRE/OgreLight.h>
 #include <OGRE/OgreMovableObject.h>
+#include <OGRE/OgreSceneManager.h>
 #include <OGRE/OgreSceneNode.h>
 
 #include <limits>
@@ -76,35 +77,64 @@ public:
 
   Ogre::ColourValue traceRay(const Ogre::Ray &ray) {
     // TODO: initialize color as background color
-    Ogre::ColourValue colour = Ogre::ColourValue::Black;
+    Ogre::ColourValue finalColour = Ogre::ColourValue::Black;
     // trace ray using the kd-tree
     Triangle *triangle = 0;
     Ogre::Real t = FLT_MAX, u = 0, v = 0;
     if (kdTree->hit(ray, triangle, t, u, v)) {
-      // TODO: get material colour
-      // TODO: get texture at (u, v) coordinates
       for (int i = 0; i < lights.size(); ++i) {
-        Ogre::ColourValue lightMaterialColour = Ogre::ColourValue::White; // light->getMaterial()->getColor();
-        Ogre::ColourValue triangleMaterialColour = Ogre::ColourValue::White; // triangle->getMaterial()->getColor();
-        float triangleMaterialDiffuse = 1.0f; // triangle->getMaterial()->getDiffuse();
-        if (triangleMaterialDiffuse > 0.0f) {
-          Ogre::Vector3 L = (lights.at(i)->getDerivedPosition() - ray.getPoint(t)).normalisedCopy();
+        // calculate shade
+        Ogre::Real shade = calculateShade();
+        if (shade > 0.0f) {
+          // calculate normal vector
           Ogre::Vector3 N = triangle->normal(u, v);
-          float dot = N.dotProduct(L);
-          if (dot > 0.0f)
-            colour += dot * triangleMaterialDiffuse * triangleMaterialColour *  lightMaterialColour;
+          // calculate light vector
+          Ogre::Vector3 L = (lights.at(i)->getDerivedPosition() - ray.getPoint(t)).normalisedCopy();
+          // calculate view vector
+          Ogre::Vector3 V = ray.getDirection();
+          // calculate lighting
+          finalColour += calculateAmbient() * triangle->getAmbientColour(u, v);
+          finalColour += calculateDiffuse(N, L) * triangle->getDiffuseColour(u, v) * lights.at(i)->getDiffuseColour();
+          finalColour += calculateSpecular(V, N, L) * triangle->getSpecularColour(u, v) * lights.at(i)->getSpecularColour();
+          finalColour *= shade;
         }
+        // TODO: calculate reflections
       }
     }
     // set full opacity
-    colour.a = 1.0f;
+    finalColour.a = 1.0f;
     // return final color
-    return colour;
+    return finalColour;
+  }
+
+  Ogre::Real calculateShade() {
+    // TODO: Implement
+    return 1.0f;
+  }
+
+  Ogre::ColourValue calculateAmbient() {
+    return ambientColour;
+  }
+
+  Ogre::Real calculateDiffuse(const Ogre::Vector3 &N, const Ogre::Vector3 &L) {
+    float dot = N.dotProduct(L);
+    if (dot > 0.0f)
+      return dot;
+    return 0;
+  }
+
+  Ogre::Real calculateSpecular(const Ogre::Vector3 &V, const Ogre::Vector3 &N, const Ogre::Vector3 &L) {
+    Ogre::Vector3 R = L - 2.0f * N.dotProduct(L) * N;
+    float dot = V.dotProduct(R);
+    if (dot > 0)
+      return  dot / (50 - 50 * dot + dot);
+    return 0;
   }
 
   QList<Ogre::Entity *> entities;
   QList<Ogre::Light *> lights;
   KdTreeNode *kdTree;
+  Ogre::ColourValue ambientColour;
 };
 
 OgreRenderer::OgreRenderer(QObject *parent) : QObject(parent), d(new OgreRendererPrivate()) {
@@ -119,6 +149,8 @@ QImage OgreRenderer::render(Ogre::SceneNode *root, const Ogre::Camera *camera, c
   d->traverse(root);
   // build tree
   d->buildTree();
+  // set ambient colour
+  d->ambientColour = Ogre::ColourValue(0.1f, 0.1f, 0.1f);
   // create empty image
   QImage result = QImage(width, height, QImage::Format_ARGB32_Premultiplied);
   // precalculate 1/width and 1/height
@@ -134,7 +166,7 @@ QImage OgreRenderer::render(Ogre::SceneNode *root, const Ogre::Camera *camera, c
       // create camera to viewport ray
       // and make sure that rays are not parallel to any axis
       Ogre::Ray ray = camera->getCameraToViewportRay(x * inverseWidth + std::numeric_limits<float>::epsilon(),
-                                                     y * inverseHeight + std::numeric_limits<float>::epsilon());
+                      y * inverseHeight + std::numeric_limits<float>::epsilon());
       // trace the ray
       Ogre::ColourValue colour = d->traceRay(ray);
       // update image

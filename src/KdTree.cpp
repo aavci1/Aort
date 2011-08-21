@@ -5,10 +5,10 @@
 #include <OGRE/OgreAxisAlignedBox.h>
 #include <OGRE/OgreRay.h>
 
-KdTreeNode::KdTreeNode() : mData(6), mSplitPosition(0) {
+KdTreeNode::KdTreeNode() : data(6), splitPosition(0) {
 }
 
-KdTreeNode::KdTreeNode(const Ogre::AxisAlignedBox &aabb, const void *pointer) : mData(6), mSplitPosition(0) {
+KdTreeNode::KdTreeNode(const Ogre::AxisAlignedBox &aabb, const void *pointer) : data(6), splitPosition(0) {
   setPointer(pointer);
   split(aabb, 0);
 }
@@ -24,19 +24,15 @@ const bool KdTreeNode::intersects(const Ogre::Ray &ray, const float t_min, const
   }
   KdTreeNode *near = (ray.getDirection()[axis()] > 0) ? nodes() + 0 : nodes() + 1;
   KdTreeNode *far = (ray.getDirection()[axis()] > 0) ? nodes() + 1 : nodes() + 0;
-  float t_split = (mSplitPosition - ray.getOrigin()[axis()]) / ray.getDirection()[axis()];
-  if (t_min < t_split && t_max < t_split) {
-    if (near->intersects(ray, t_min, t_max))
-      return true;
-    // no hit, return false
-    return false;
-  }
-  if (t_min > t_split && t_max > t_split) {
-    if (far->intersects(ray, t_min, t_max))
-      return true;
-    // no hit, return false
-    return false;
-  }
+  // calculate distance to the split plane
+  float t_split = (splitPosition - ray.getOrigin()[axis()]) / ray.getDirection()[axis()];
+  // only intersects near node
+  if (t_min < t_split && t_max < t_split)
+    return near->intersects(ray, t_min, t_max);
+  // only intersects far node
+  if (t_min > t_split && t_max > t_split)
+    return far->intersects(ray, t_min, t_max);
+  // intersects both
   if (near->intersects(ray, t_min, t_split))
     return true;
   if (far->intersects(ray, t_split, t_max))
@@ -45,16 +41,18 @@ const bool KdTreeNode::intersects(const Ogre::Ray &ray, const float t_min, const
   return false;
 }
 
+int mod3[5] = {0, 1, 2, 0, 1};
 void KdTreeNode::split(const Ogre::AxisAlignedBox &aabb, const int depth) {
   Ogre::Vector3 size = aabb.getSize();
-  // subdivision will use the longest axis of the bounding box
-  if ((size.x >= size.y) && (size.x >= size.z)) {
-    setAxis(0);
-  }  else if ((size.y >= size.x) && (size.y >= size.z)) {
+  // assume first axis is the longest one
+  setAxis(0);
+  // update axis, if second axis is longer
+  if (size[1] > size[axis()])
     setAxis(1);
-  } else {
+  // update axis, if third axis is longer
+  if (size[2] > size[axis()])
     setAxis(2);
-  }
+
   int mSplitAxis = axis();
   float a = size[(mSplitAxis + 1) % 3];
   float b = size[(mSplitAxis + 2) % 3];
@@ -107,7 +105,7 @@ void KdTreeNode::split(const Ogre::AxisAlignedBox &aabb, const int depth) {
     float cost = SAL * left + SAR * (triangleCount - right);
     if (cost < lowestCost) {
       lowestCost = cost;
-      mSplitPosition = (*it);
+      splitPosition = (*it);
       leftCount = left;
       rightCount = (triangleCount - right);
     }
@@ -131,11 +129,11 @@ void KdTreeNode::split(const Ogre::AxisAlignedBox &aabb, const int depth) {
   Triangle **rightTriangles = new Triangle*[rightCount + 1];
   unsigned int l = 0, r = 0;
   for (unsigned int j = 0; j < triangleCount; ++j) {
-    if (minimums2[j] <= mSplitPosition) {
+    if (minimums2[j] <= splitPosition) {
       leftTriangles[l] = triangles[j];
       l++;
     }
-    if (maximums2[j] > mSplitPosition) {
+    if (maximums2[j] > splitPosition) {
       rightTriangles[r] = triangles[j];
       r++;
     }
@@ -147,11 +145,11 @@ void KdTreeNode::split(const Ogre::AxisAlignedBox &aabb, const int depth) {
   // set bounding box
   Ogre::AxisAlignedBox lbb = aabb;
   if (mSplitAxis == 0) {
-    lbb.setMaximumX(mSplitPosition);
+    lbb.setMaximumX(splitPosition);
   } else if (mSplitAxis == 1) {
-    lbb.setMaximumY(mSplitPosition);
+    lbb.setMaximumY(splitPosition);
   } else {
-    lbb.setMaximumZ(mSplitPosition);
+    lbb.setMaximumZ(splitPosition);
   }
   if (depth < MAXIMUM_DEPTH && leftCount > MINIMUM_TRIANGLES_PER_LEAF) {
     // subdivide left node
@@ -160,11 +158,11 @@ void KdTreeNode::split(const Ogre::AxisAlignedBox &aabb, const int depth) {
   // set bounding box
   Ogre::AxisAlignedBox rbb = aabb;
   if (mSplitAxis == 0) {
-    rbb.setMinimumX(mSplitPosition);
+    rbb.setMinimumX(splitPosition);
   } else if (mSplitAxis == 1) {
-    rbb.setMinimumY(mSplitPosition);
+    rbb.setMinimumY(splitPosition);
   } else {
-    rbb.setMinimumZ(mSplitPosition);
+    rbb.setMinimumZ(splitPosition);
   }
   if (depth < MAXIMUM_DEPTH && rightCount > MINIMUM_TRIANGLES_PER_LEAF) {
     // subdivide node
@@ -179,29 +177,29 @@ void KdTreeNode::split(const Ogre::AxisAlignedBox &aabb, const int depth) {
 }
 
 const bool KdTreeNode::isLeaf() const {
-  return ((mData & 4) > 0);
+  return ((data & 4) > 0);
 }
 
 void KdTreeNode::setLeaf(const bool leaf) {
-  mData = (leaf) ? (mData | 4) : (mData & 0xfffffffb);
+  data = (leaf) ? (data | 4) : (data & 0xfffffffb);
 }
 
 const int KdTreeNode::axis() const {
-  return mData & 3;
+  return data & 3;
 }
 
 void KdTreeNode::setAxis(const int axis) {
-  mData = (mData & 0xfffffffc) + axis;
+  data = (data & 0xfffffffc) + axis;
 }
 
 KdTreeNode *KdTreeNode::nodes() const {
-  return (KdTreeNode *)(mData & 0xfffffff8);
+  return (KdTreeNode *)(data & 0xfffffff8);
 }
 
 Triangle **KdTreeNode::triangles() const {
-  return (Triangle **)(mData & 0xfffffff8);
+  return (Triangle **)(data & 0xfffffff8);
 }
 
 void KdTreeNode::setPointer(const void *pointer) {
-  mData = (unsigned long)pointer + (mData & 7);
+  data = (unsigned long)pointer + (data & 7);
 }

@@ -35,8 +35,8 @@ private:
   void setPointer(const void *pointer);
 
 private:
-  unsigned long mData;
-  float mSplitPosition;
+  unsigned long data;
+  float splitPosition;
 };
 
 #endif // KDTREE_H

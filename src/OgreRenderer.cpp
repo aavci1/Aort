@@ -2,6 +2,7 @@
 
 #include "KdTree.h"
 #include "MeshInfo.h"
+#include "Triangle.h"
 
 #include <OGRE/OgreCamera.h>
 #include <OGRE/OgreColourValue.h>
@@ -74,13 +75,31 @@ public:
   }
 
   Ogre::ColourValue traceRay(const Ogre::Ray &ray) {
+    // TODO: initialize color as background color
+    Ogre::ColourValue colour = Ogre::ColourValue::Black;
     // trace ray using the kd-tree
     Triangle *triangle = 0;
     Ogre::Real t = FLT_MAX, u = 0, v = 0;
-    if (kdTree->hit(ray, triangle, t, u, v))
-      return Ogre::ColourValue::White;
-    // TODO: return background color
-    return Ogre::ColourValue::Black;
+    if (kdTree->hit(ray, triangle, t, u, v)) {
+      // TODO: get material colour
+      // TODO: get texture at (u, v) coordinates
+      for (int i = 0; i < lights.size(); ++i) {
+        Ogre::ColourValue lightMaterialColour = Ogre::ColourValue::White; // light->getMaterial()->getColor();
+        Ogre::ColourValue triangleMaterialColour = Ogre::ColourValue::White; // triangle->getMaterial()->getColor();
+        float triangleMaterialDiffuse = 1.0f; // triangle->getMaterial()->getDiffuse();
+        if (triangleMaterialDiffuse > 0.0f) {
+          Ogre::Vector3 L = (lights.at(i)->getDerivedPosition() - ray.getPoint(t)).normalisedCopy();
+          Ogre::Vector3 N = triangle->normal(u, v);
+          float dot = N.dotProduct(L);
+          if (dot > 0.0f)
+            colour += dot * triangleMaterialDiffuse * triangleMaterialColour *  lightMaterialColour;
+        }
+      }
+    }
+    // set full opacity
+    colour.a = 1.0f;
+    // return final color
+    return colour;
   }
 
   QList<Ogre::Entity *> entities;

@@ -19,7 +19,7 @@ const bool KdTreeNode::hit(const Ogre::Ray &ray, Triangle *&triangle, Ogre::Real
     t = FLT_MAX;
     for (Triangle **it = triangles(); *it != 0; ++it) {
       Ogre::Real _t = FLT_MAX, _u = 0, _v = 0;
-      if ((*it)->intersects(ray, _t, _u, _v) && _t < t) {
+      if ((*it)->intersects(ray, _t, _u, _v) && _t >= t_min && _t <= t_max && _t < t) {
         triangle = *it;
         t = _t;
         u = _u;
@@ -51,9 +51,12 @@ const bool KdTreeNode::hit(const Ogre::Ray &ray, Triangle *&triangle, Ogre::Real
 const bool KdTreeNode::hit(const Ogre::Ray &ray, const Ogre::Real t_min, const Ogre::Real t_max) const {
   // if leaf, check triangle list for intersection
   if (isLeaf()) {
-    for (Triangle **it = triangles(); *it != 0; ++it)
-      if ((*it)->intersects(ray))
+    for (Triangle **it = triangles(); *it != 0; ++it) {
+      Ogre::Real _t = FLT_MAX, _u = 0, _v = 0;
+      // if intersects and intersection is between the t_min and t_max
+      if ((*it)->intersects(ray, _t, _u, _v) && _t >= t_min && _t <= t_max)
         return true;
+    }
     // no hit, return false
     return false;
   }

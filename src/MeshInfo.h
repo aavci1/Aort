@@ -1,6 +1,8 @@
 #ifndef MESHINFO_H
 #define MESHINFO_H
 
+#include <stddef.h>
+
 namespace Ogre {
   class Entity;
 }
@@ -13,7 +15,8 @@ public:
   MeshInfo(const Ogre::Entity *entity);
   ~MeshInfo();
 
-  Triangle **triangles();
+  const size_t triangleCount() const;
+  Triangle **triangles() const;
 
 private:
   MeshInfoPrivate *d;

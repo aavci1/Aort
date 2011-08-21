@@ -173,6 +173,10 @@ MeshInfo::~MeshInfo() {
   delete d;
 }
 
-Triangle **MeshInfo::triangles() {
+const size_t MeshInfo::triangleCount() const {
+  return d->triangleCount;
+}
+
+Triangle **MeshInfo::triangles() const {
   return d->triangles;
 }

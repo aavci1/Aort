@@ -1,5 +1,6 @@
 #include "Triangle.h"
 
+#include <OGRE/OgreColourValue.h>
 #include <OGRE/OgreMath.h>
 #include <OGRE/OgreRay.h>
 #include <OGRE/OgreString.h>
@@ -79,6 +80,21 @@ const Ogre::Vector2 Triangle::texCoord(const Ogre::Real u, const Ogre::Real v) c
 
 const Ogre::String Triangle::materialName() const {
   return d->materialName;
+}
+
+const Ogre::ColourValue Triangle::getAmbientColour(const Ogre::Real u, const Ogre::Real v) const {
+  // TODO: Implement
+  return Ogre::ColourValue::White;
+}
+
+const Ogre::ColourValue Triangle::getDiffuseColour(const Ogre::Real u, const Ogre::Real v) const {
+  // TODO: Implement
+  return Ogre::ColourValue::White;
+}
+
+const Ogre::ColourValue Triangle::getSpecularColour(const Ogre::Real u, const Ogre::Real v) const {
+  // TODO: Implement
+  return Ogre::ColourValue::White;
 }
 
 const bool Triangle::intersects(const Ogre::Ray &ray, Ogre::Real &t, Ogre::Real &u, Ogre::Real &v) const {

@@ -18,6 +18,13 @@ public:
   Ogre::Vector3 normal;
   Ogre::Vector2 uv[3];
   Ogre::String materialName;
+  // intersection
+  Ogre::Vector3 b;
+  Ogre::Vector3 c;
+  int axis;
+  int uAxis;
+  int vAxis;
+  float inv_det;
 };
 
 Triangle::Triangle(const Ogre::Vector3 &p1, const Ogre::Vector3 &p2, const Ogre::Vector3 &p3,
@@ -35,6 +42,23 @@ Triangle::Triangle(const Ogre::Vector3 &p1, const Ogre::Vector3 &p2, const Ogre:
   d->uv[2] = uv3;
   // material name
   d->materialName = materialName;
+  // precompute some values
+  d->b = d->position[2] - d->position[0];
+  d->c = d->position[1] - d->position[0];
+  if (fabs(d->normal.x) > fabs(d->normal.y)) {
+    if (fabs(d->normal.x) > fabs(d->normal.z))
+      d->axis = 0;
+    else
+      d->axis = 2;
+  } else {
+    if (fabs(d->normal.y) > fabs(d->normal.z))
+      d->axis = 1;
+    else
+      d->axis = 2;
+  }
+  d->uAxis = (d->axis + 1) % 3;
+  d->vAxis = (d->axis + 2) % 3;
+  d->inv_det = 1.0f / (d->b[d->uAxis] * d->c[d->vAxis] - d->b[d->vAxis] * d->c[d->uAxis]);
 }
 
 Triangle::~Triangle() {
@@ -57,80 +81,46 @@ const Ogre::String Triangle::materialName() const {
   return d->materialName;
 }
 
-const int mod[5] = {0, 1, 2, 0, 1};
-// TODO: speed up by precomputing as much as you can
 const bool Triangle::intersects(const Ogre::Ray &ray, Ogre::Real &t, Ogre::Real &u, Ogre::Real &v) const {
-  Ogre::Vector3 b = d->position[2] - d->position[0];
-  Ogre::Vector3 c = d->position[1] - d->position[0];
   t = -(ray.getOrigin() - d->position[0]).dotProduct(d->normal) / ray.getDirection().dotProduct(d->normal);
-  if (t <= 0)
+  if (t < std::numeric_limits<float>::epsilon())
     return false;
-  int k;
-  if (fabs(d->normal.x) > fabs(d->normal.y)) {
-    if (fabs(d->normal.x) > fabs(d->normal.z))
-      k = 0;
-    else
-      k = 2;
-  } else {
-    if (fabs(d->normal.y) > fabs(d->normal.z))
-      k = 1;
-    else
-      k = 2;
-  }
-  int _u = mod[k + 1];
-  int _v = mod[k + 2];
-  Ogre::Vector3 H(0, 0, 0);
-  H[_u] = (ray.getOrigin()[_u] + t * ray.getDirection()[_u]) - d->position[0][_u];
-  H[_v] = (ray.getOrigin()[_v] + t * ray.getDirection()[_v]) - d->position[0][_v];
-  float denom = b[_u] * c[_v] - b[_v] * c[_u];
-  u = (b[_u] * H[_v] - b[_v] * H[_u]) / denom;
+  // calculate hit point
+  Ogre::Vector3 hit = ray.getPoint(t) - d->position[0];
+  // calculate u
+  u = (d->b[d->uAxis] * hit[d->vAxis] - d->b[d->vAxis] * hit[d->uAxis]) * d->inv_det;
   if (u < 0)
     return false;
-  v = (c[_v] * H[_u] - c[_u] * H[_v]) / denom;
+  // calculate v
+  v = (d->c[d->vAxis] * hit[d->uAxis] - d->c[d->uAxis] * hit[d->vAxis]) * d->inv_det;
   if (v < 0)
     return false;
-  if (v + u > 1.0)
+  // u + v should be less than or equal to 1
+  if (u + v > 1)
     return false;
-  if (ray.getDirection().dotProduct(d->normal) > 0)
-    return false;
+  // ray intersects triangle
   return true;
 }
 
 const bool Triangle::intersects(const Ogre::Ray &ray) const {
   Ogre::Real t, u, v;
-  Ogre::Vector3 b = d->position[2] - d->position[0];
-  Ogre::Vector3 c = d->position[1] - d->position[0];
   t = -(ray.getOrigin() - d->position[0]).dotProduct(d->normal) / ray.getDirection().dotProduct(d->normal);
-  if (t <= 0)
+  if (t < std::numeric_limits<float>::epsilon())
     return false;
-  int k;
-  if (fabs(d->normal.x) > fabs(d->normal.y)) {
-    if (fabs(d->normal.x) > fabs(d->normal.z))
-      k = 0;
-    else
-      k = 2;
-  } else {
-    if (fabs(d->normal.y) > fabs(d->normal.z))
-      k = 1;
-    else
-      k = 2;
-  }
-  int _u = mod[k + 1];
-  int _v = mod[k + 2];
-  Ogre::Vector3 H(0, 0, 0);
-  H[_u] = (ray.getOrigin()[_u] + t * ray.getDirection()[_u]) - d->position[0][_u];
-  H[_v] = (ray.getOrigin()[_v] + t * ray.getDirection()[_v]) - d->position[0][_v];
-  float denom = b[_u] * c[_v] - b[_v] * c[_u];
-  u = (b[_u] * H[_v] - b[_v] * H[_u]) / denom;
+  // calculate hit point
+  Ogre::Vector3 hit = ray.getPoint(t) - d->position[0];
+  // calculate u
+  u = (d->b[d->uAxis] * hit[d->vAxis] - d->b[d->vAxis] * hit[d->uAxis]) * d->inv_det;
   if (u < 0)
     return false;
-  v = (c[_v] * H[_u] - c[_u] * H[_v]) / denom;
+  // calculate v
+  v = (d->c[d->vAxis] * hit[d->uAxis] - d->c[d->uAxis] * hit[d->vAxis]) * d->inv_det;
   if (v < 0)
     return false;
-  if (v + u > 1.0)
+  // u + v should be less than or equal to 1
+  if (u + v > 1)
     return false;
-  if (ray.getDirection().dotProduct(d->normal) > 0)
-    return false;
+  // ray intersects triangle
   return true;
 //  return Ogre::Math::intersects(ray, d->position[0], d->position[1], d->position[2], true, false).first;
 }

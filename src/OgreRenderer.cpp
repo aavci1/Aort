@@ -1,5 +1,8 @@
 #include "OgreRenderer.h"
 
+#include "KdTree.h"
+#include "MeshInfo.h"
+
 #include <OGRE/OgreCamera.h>
 #include <OGRE/OgreColourValue.h>
 #include <OGRE/OgreEntity.h>
@@ -13,10 +16,10 @@ public:
   }
 
   ~OgreRendererPrivate() {
+    qDeleteAll(trees);
   }
 
   void traverse(Ogre::SceneNode *root) {
-    // TODO: conceive an acceleration structure
     for (int i = 0; i < root->numAttachedObjects(); ++i) {
       Ogre::MovableObject *object = root->getAttachedObject(i);
       // skip unvisible objects
@@ -33,17 +36,28 @@ public:
       traverse(static_cast<Ogre::SceneNode *>(root->getChild(i)));
   }
 
+  void buildTree() {
+    // build a sah optimized kd-tree
+    for (int i = 0; i < entities.size(); ++i) {
+      KdTreeNode *tree = new KdTreeNode(MeshInfo(entities.at(i)).triangles());
+      tree->subdivide(entities.at(i)->getWorldBoundingBox(), 0);
+      trees.append(tree);
+    }
+  }
+
   Ogre::ColourValue traceRay(const Ogre::Ray &ray) {
-    // TODO: to actually trace the ray to the polygon level
+    // trace ray using the kd-tree
     for (int i = 0; i < entities.size(); ++i) {
       if (ray.intersects(entities.at(i)->getWorldBoundingBox(true)).first)
-        return Ogre::ColourValue::White;
+        if (trees.at(i)->anyHit(ray))
+          return Ogre::ColourValue::White;
     }
     // TODO: return background color
     return Ogre::ColourValue::Black;
   }
 
   QList<Ogre::Entity *> entities;
+  QList<KdTreeNode *> trees;
   QList<Ogre::Light *> lights;
 };
 
@@ -54,9 +68,11 @@ OgreRenderer::~OgreRenderer() {
   delete d;
 }
 
-QImage OgreRenderer::render(Ogre::SceneNode *root, const Ogre::Camera *camera, const int width, const int height, const int maxReflection) {
+QImage OgreRenderer::render(Ogre::SceneNode *root, const Ogre::Camera *camera, const int width, const int height) {
   // extract entities and lights
   d->traverse(root);
+  // build tree
+  d->buildTree();
   // create empty image
   QImage result = QImage(width, height, QImage::Format_ARGB32_Premultiplied);
   // precalculate 1/width and 1/height

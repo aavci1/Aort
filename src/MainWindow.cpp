@@ -161,6 +161,7 @@ void MainWindow::windowCreated() {
   Ogre::Light *light = OgreManager::instance()->sceneManager()->createLight();
   light->setType(Ogre::Light::LT_POINT);
   light->setDiffuseColour(0.5f, 0.5f, 0.5f);
+  light->setSpecularColour(1.0f, 1.0f, 1.0f);
   // attach light to the camera node
   cameraNode->attachObject(light);
 }

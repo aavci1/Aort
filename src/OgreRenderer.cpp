@@ -18,11 +18,10 @@
 
 class OgreRendererPrivate {
 public:
-  OgreRendererPrivate() {
+  OgreRendererPrivate() : kdTree(0) {
   }
 
   ~OgreRendererPrivate() {
-    qDeleteAll(trees);
   }
 
   void traverse(Ogre::SceneNode *root) {
@@ -43,25 +42,48 @@ public:
   }
 
   void buildTree() {
-    // build a kd-tree for each entity
-    for (int i = 0; i < entities.size(); ++i)
-      trees.append(new KdTreeNode(entities.at(i)->getWorldBoundingBox(), MeshInfo(entities.at(i)).triangles()));
+    QList<Triangle **> triangleList;
+    size_t triangleCount = 0;
+    Ogre::AxisAlignedBox aabb(Ogre::Vector3(0, 0, 0), Ogre::Vector3(0, 0, 0));
+    // extract triangles from all meshes
+    for (int i = 0; i < entities.size(); ++i) {
+      // extend aabb
+      aabb.merge(entities.at(i)->getWorldBoundingBox(true));
+      // extract mesh info
+      MeshInfo *meshInfo = new MeshInfo(entities.at(i));
+      // add triangles to the list
+      triangleList.append(meshInfo->triangles());
+      // increase triangle count
+      triangleCount += meshInfo->triangleCount();
+      // clean up
+      delete meshInfo;
+    }
+    // merge all triangles into a single list
+    Triangle **triangles = new Triangle*[triangleCount + 1];
+    size_t triangleIndex = 0;
+    for (size_t i = 0; i < triangleList.size(); ++i) {
+      for (size_t j = 0; triangleList.at(i)[j]; ++j)
+        triangles[triangleIndex++] = triangleList.at(i)[j];
+      // clean up
+      delete[] triangleList.at(i);
+    }
+    // last triangle pointer in the list must be null
+    triangles[triangleIndex] = 0;
+    // build a kd-tree
+    kdTree = new KdTreeNode(aabb, triangles);
   }
 
   Ogre::ColourValue traceRay(const Ogre::Ray &ray) {
     // trace ray using the kd-tree
-    for (int i = 0; i < entities.size(); ++i) {
-      if (ray.intersects(entities.at(i)->getWorldBoundingBox(true)).first)
-        if (trees.at(i)->intersects(ray))
-          return Ogre::ColourValue::White;
-    }
+    if (kdTree->intersects(ray))
+      return Ogre::ColourValue::White;
     // TODO: return background color
     return Ogre::ColourValue::Black;
   }
 
   QList<Ogre::Entity *> entities;
-  QList<KdTreeNode *> trees;
   QList<Ogre::Light *> lights;
+  KdTreeNode *kdTree;
 };
 
 OgreRenderer::OgreRenderer(QObject *parent) : QObject(parent), d(new OgreRendererPrivate()) {
@@ -102,12 +124,11 @@ QImage OgreRenderer::render(Ogre::SceneNode *root, const Ogre::Camera *camera, c
     }
   }
   // free memory
-  qDeleteAll(d->trees);
+  delete d->kdTree;
   // clean up
   d->entities.clear();
-  d->trees.clear();
   d->lights.clear();
+  d->kdTree = 0;
   // return result
   return result;
 }
-

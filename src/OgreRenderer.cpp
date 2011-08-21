@@ -103,8 +103,8 @@ QImage OgreRenderer::render(Ogre::SceneNode *root, const Ogre::Camera *camera, c
   // create empty image
   QImage result = QImage(width, height, QImage::Format_ARGB32_Premultiplied);
   // precalculate 1/width and 1/height
-  float inverseWidth = 1.0f / width;
-  float inverseHeight = 1.0f / height;
+  Ogre::Real inverseWidth = 1.0f / width;
+  Ogre::Real inverseHeight = 1.0f / height;
 #ifndef NO_OMP
   #pragma omp parallel for
 #endif // !NO_OMP

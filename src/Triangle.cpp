@@ -21,10 +21,10 @@ public:
   // intersection
   Ogre::Vector3 b;
   Ogre::Vector3 c;
+  Ogre::Real inv_det;
   int axis;
   int uAxis;
   int vAxis;
-  float inv_det;
 };
 
 Triangle::Triangle(const Ogre::Vector3 &p1, const Ogre::Vector3 &p2, const Ogre::Vector3 &p3,
@@ -73,7 +73,7 @@ const Ogre::Vector3 Triangle::normal(const Ogre::Real u, const Ogre::Real v) con
   return d->normal;
 }
 
-const Ogre::Vector2 Triangle::textureCoord(const Ogre::Real u, const Ogre::Real v) const {
+const Ogre::Vector2 Triangle::texCoord(const Ogre::Real u, const Ogre::Real v) const {
   return d->uv[0] * (1 - u - v) + d->uv[1] * u + d->uv[2] * v;
 }
 

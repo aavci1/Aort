@@ -13,7 +13,7 @@ KdTreeNode::KdTreeNode(const Ogre::AxisAlignedBox &aabb, const void *pointer) : 
   split(aabb, 0);
 }
 
-const bool KdTreeNode::hit(const Ogre::Ray &ray, Triangle *&triangle, float &t, float &u, float &v, const float t_min, const float t_max) const {
+const bool KdTreeNode::hit(const Ogre::Ray &ray, Triangle *&triangle, Ogre::Real &t, Ogre::Real &u, Ogre::Real &v, const Ogre::Real t_min, const Ogre::Real t_max) const {
   // if leaf, check triangle list for intersection
   if (isLeaf()) {
     t = FLT_MAX;
@@ -32,7 +32,7 @@ const bool KdTreeNode::hit(const Ogre::Ray &ray, Triangle *&triangle, float &t, 
   KdTreeNode *near = (ray.getDirection()[axis()] > 0) ? nodes() + 0 : nodes() + 1;
   KdTreeNode *far = (ray.getDirection()[axis()] > 0) ? nodes() + 1 : nodes() + 0;
   // calculate distance to the split plane
-  float t_split = (splitPosition - ray.getOrigin()[axis()]) / ray.getDirection()[axis()];
+  Ogre::Real t_split = (splitPosition - ray.getOrigin()[axis()]) / ray.getDirection()[axis()];
   // only intersects near node
   if (t_min < t_split && t_max < t_split)
     return near->hit(ray, triangle, t, u, v, t_min, t_max);
@@ -48,7 +48,7 @@ const bool KdTreeNode::hit(const Ogre::Ray &ray, Triangle *&triangle, float &t, 
   return false;
 }
 
-const bool KdTreeNode::hit(const Ogre::Ray &ray, const float t_min, const float t_max) const {
+const bool KdTreeNode::hit(const Ogre::Ray &ray, const Ogre::Real t_min, const Ogre::Real t_max) const {
   // if leaf, check triangle list for intersection
   if (isLeaf()) {
     for (Triangle **it = triangles(); *it != 0; ++it)
@@ -60,7 +60,7 @@ const bool KdTreeNode::hit(const Ogre::Ray &ray, const float t_min, const float 
   KdTreeNode *near = (ray.getDirection()[axis()] > 0) ? nodes() + 0 : nodes() + 1;
   KdTreeNode *far = (ray.getDirection()[axis()] > 0) ? nodes() + 1 : nodes() + 0;
   // calculate distance to the split plane
-  float t_split = (splitPosition - ray.getOrigin()[axis()]) / ray.getDirection()[axis()];
+  Ogre::Real t_split = (splitPosition - ray.getOrigin()[axis()]) / ray.getDirection()[axis()];
   // only intersects near node
   if (t_min < t_split && t_max < t_split)
     return near->hit(ray, t_min, t_max);
@@ -89,22 +89,22 @@ void KdTreeNode::split(const Ogre::AxisAlignedBox &aabb, const int depth) {
     setAxis(2);
 
   int mSplitAxis = axis();
-  float a = size[(mSplitAxis + 1) % 3];
-  float b = size[(mSplitAxis + 2) % 3];
-  float boxMinimum = aabb.getMinimum()[mSplitAxis];
-  float boxMaximum = aabb.getMaximum()[mSplitAxis];
-  std::vector<float> splitCandidates;
+  Ogre::Real a = size[(mSplitAxis + 1) % 3];
+  Ogre::Real b = size[(mSplitAxis + 2) % 3];
+  Ogre::Real boxMinimum = aabb.getMinimum()[mSplitAxis];
+  Ogre::Real boxMaximum = aabb.getMaximum()[mSplitAxis];
+  std::vector<Ogre::Real> splitCandidates;
   unsigned int triangleCount;
   Triangle **mTriangles = triangles();
   for (triangleCount = 0; mTriangles[triangleCount] != 0; triangleCount++);
-  float *minimums = new float[triangleCount];
-  float *maximums = new float[triangleCount];
-  float *minimums2 = new float[triangleCount];
-  float *maximums2 = new float[triangleCount];
+  Ogre::Real *minimums = new Ogre::Real[triangleCount];
+  Ogre::Real *maximums = new Ogre::Real[triangleCount];
+  Ogre::Real *minimums2 = new Ogre::Real[triangleCount];
+  Ogre::Real *maximums2 = new Ogre::Real[triangleCount];
   for (unsigned int i = 0; i < triangleCount; ++i) {
-    float minimum = std::min(std::min(mTriangles[i]->position(0)[mSplitAxis], mTriangles[i]->position(1)[mSplitAxis]),
+    Ogre::Real minimum = std::min(std::min(mTriangles[i]->position(0)[mSplitAxis], mTriangles[i]->position(1)[mSplitAxis]),
                              mTriangles[i]->position(2)[mSplitAxis]);
-    float maximum = std::max(std::max(mTriangles[i]->position(0)[mSplitAxis], mTriangles[i]->position(1)[mSplitAxis]),
+    Ogre::Real maximum = std::max(std::max(mTriangles[i]->position(0)[mSplitAxis], mTriangles[i]->position(1)[mSplitAxis]),
                              mTriangles[i]->position(2)[mSplitAxis]);
     minimums[i] = minimum;
     maximums[i] = maximum;
@@ -123,10 +123,10 @@ void KdTreeNode::split(const Ogre::AxisAlignedBox &aabb, const int depth) {
   std::sort(maximums, maximums + triangleCount);
   unsigned int leftCount = 0;
   unsigned int rightCount = 0;
-  float lowestCost = FLT_MAX;
+  Ogre::Real lowestCost = FLT_MAX;
   unsigned int left = 0;
   unsigned int right = 0;
-  for (std::vector<float>::iterator it = splitCandidates.begin(); it != splitCandidates.end(); ++it) {
+  for (std::vector<Ogre::Real>::iterator it = splitCandidates.begin(); it != splitCandidates.end(); ++it) {
     while (left < triangleCount && minimums[left] <= (*it)) {
       left++;
     }
@@ -134,10 +134,10 @@ void KdTreeNode::split(const Ogre::AxisAlignedBox &aabb, const int depth) {
       right++;
     }
     // calculate surface areas of left and right boxes
-    float SAL = ((*it) - boxMinimum) * (a + b) + a * b;
-    float SAR = (boxMaximum - (*it)) * (a + b) + a * b;
+    Ogre::Real SAL = ((*it) - boxMinimum) * (a + b) + a * b;
+    Ogre::Real SAR = (boxMaximum - (*it)) * (a + b) + a * b;
     // calculate splitting cost
-    float cost = SAL * left + SAR * (triangleCount - right);
+    Ogre::Real cost = SAL * left + SAR * (triangleCount - right);
     if (cost < lowestCost) {
       lowestCost = cost;
       splitPosition = (*it);

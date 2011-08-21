@@ -14,7 +14,7 @@ public:
 
   const Ogre::Vector3 position(const int i) const;
   const Ogre::Vector3 normal(const Ogre::Real u, const Ogre::Real v) const;
-  const Ogre::Vector2 textureCoord(const Ogre::Real u, const Ogre::Real v) const;
+  const Ogre::Vector2 texCoord(const Ogre::Real u, const Ogre::Real v) const;
   const Ogre::String materialName() const;
 
   const bool intersects(const Ogre::Ray &ray, Ogre::Real &t, Ogre::Real &u, Ogre::Real &v) const;

@@ -1,6 +1,8 @@
 #ifndef KDTREE_H
 #define KDTREE_H
 
+#include <OGRE/OgrePrerequisites.h>
+
 #include <float.h>
 
 #define MAXIMUM_DEPTH (64)
@@ -18,8 +20,8 @@ public:
   KdTreeNode();
   KdTreeNode(const Ogre::AxisAlignedBox &aabb, const void *pointer);
 
-  const bool hit(const Ogre::Ray &ray, Triangle *&triangle, float &t, float &u, float &v, const float t_min = 0.0f, const float t_max = FLT_MAX) const;
-  const bool hit(const Ogre::Ray &ray, const float t_min = 0.0f, const float t_max = FLT_MAX) const;
+  const bool hit(const Ogre::Ray &ray, Triangle *&triangle, Ogre::Real &t, Ogre::Real &u, Ogre::Real &v, const Ogre::Real t_min = 0.0f, const Ogre::Real t_max = FLT_MAX) const;
+  const bool hit(const Ogre::Ray &ray, const Ogre::Real t_min = 0.0f, const Ogre::Real t_max = FLT_MAX) const;
 
 private:
   void split(const Ogre::AxisAlignedBox &aabb, const int depth);
@@ -37,7 +39,7 @@ private:
 
 private:
   unsigned long data;
-  float splitPosition;
+  Ogre::Real splitPosition;
 };
 
 #endif // KDTREE_H

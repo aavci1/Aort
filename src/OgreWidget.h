@@ -3,11 +3,9 @@
 
 #include <QWidget>
 
-class QPaintEngine;
+#include <OGRE/OgrePrerequisites.h>
 
-namespace Ogre {
-  class RenderWindow;
-}
+class QPaintEngine;
 
 class OgreWidgetPrivate;
 

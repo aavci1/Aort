@@ -59,7 +59,7 @@ namespace Aort {
       if (light->getType() == Ogre::Light::LT_POINT)
         l->setType(Aort::LT_POINT);
       else if (light->getType() == Ogre::Light::LT_DIRECTIONAL)
-        l->setType(Aort::LT_BOX);
+        l->setType(Aort::LT_AREA);
       // return light
       return l;
     }

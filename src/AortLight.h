@@ -6,7 +6,7 @@
 namespace Aort {
   enum LightType {
     LT_POINT,
-    LT_BOX
+    LT_AREA
   };
 
   class LightPrivate;

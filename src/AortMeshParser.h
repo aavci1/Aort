@@ -14,8 +14,7 @@ namespace Aort {
     MeshParser(const Ogre::Entity *entity);
     ~MeshParser();
 
-    const size_t triangleCount() const;
-    Triangle **triangles() const;
+    const std::vector<Triangle *> &triangles() const;
 
   private:
     MeshParserPrivate *d;

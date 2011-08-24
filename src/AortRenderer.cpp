@@ -6,8 +6,6 @@
 #include "AortSceneNode.h"
 #include "AortTriangle.h"
 
-#include <QDebug>
-
 #include <OGRE/OgreCamera.h>
 #include <OGRE/OgreColourValue.h>
 #include <OGRE/OgreEntity.h>
@@ -67,35 +65,27 @@ namespace Aort {
     }
 
     void buildTree() {
-      QList<Triangle **> triangleList;
-      size_t triangleCount = 0;
+      std::vector<Triangle *> triangleList;
       Ogre::AxisAlignedBox aabb(Ogre::Vector3(0, 0, 0), Ogre::Vector3(0, 0, 0));
       // extract triangles from all meshes
       for (int i = 0; i < entities.size(); ++i) {
         // extend aabb
         aabb.merge(entities.at(i)->getWorldBoundingBox(true));
         // extract mesh info
-        MeshParser *meshInfo = new MeshParser(entities.at(i));
-        // add triangles to the list
-        triangleList.append(meshInfo->triangles());
-        // increase triangle count
-        triangleCount += meshInfo->triangleCount();
-        // clean up
-        delete meshInfo;
+        MeshParser *meshParser = new MeshParser(entities.at(i));
+        // merge mesh triangles
+        triangleList.insert(triangleList.end(), meshParser->triangles().begin(), meshParser->triangles().end());
+        // delete mesh parser instance
+        delete meshParser;
       }
-      // merge all triangles into a single list
-      Triangle **triangles = new Triangle*[triangleCount + 1];
-      size_t triangleIndex = 0;
-      for (size_t i = 0; i < triangleList.size(); ++i) {
-        for (size_t j = 0; triangleList.at(i)[j]; ++j)
-          triangles[triangleIndex++] = triangleList.at(i)[j];
-        // clean up
-        delete[] triangleList.at(i);
-      }
-      // last triangle pointer in the list must be null
-      triangles[triangleIndex] = 0;
-      // build a kd-tree
-      rootNode = new SceneNode(aabb, triangles, triangleCount);
+      // create triangle array
+      Triangle **triangles = new Triangle*[triangleList.size() + 1];
+      for (int i = 0; i < triangleList.size(); ++i)
+        triangles[i] = triangleList[i];
+      // put 0 at the end
+      triangles[triangleList.size()] = 0;
+      // build the scene tree
+      rootNode = new SceneNode(aabb, triangles, triangleList.size());
     }
 
     Ogre::ColourValue traceRay(const Ogre::Ray &ray, int depth = 0) {

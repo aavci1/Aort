@@ -33,7 +33,7 @@ namespace Aort {
 
   class MeshParserPrivate {
   public:
-    MeshParserPrivate() : vertexCount(0), vertices(0), indexCount(0), indices(0), triangleCount(0), triangles(0) {
+    MeshParserPrivate() : vertexCount(0), vertices(0), indexCount(0), indices(0) {
     }
 
     ~MeshParserPrivate() {
@@ -47,8 +47,7 @@ namespace Aort {
     size_t indexCount;
     Ogre::uint32 *indices;
     // triangles
-    size_t triangleCount;
-    Triangle **triangles;
+    std::vector<Triangle *> triangles;
   };
 
   Material *readMaterial(Ogre::String materialName) {
@@ -176,11 +175,6 @@ namespace Aort {
     // create buffers
     d->vertices = new Vertex[d->vertexCount];
     d->indices = new Ogre::uint32[d->indexCount];
-    // calculate triangle count
-    d->triangleCount = d->indexCount / 3;
-    // create triangles array
-    d->triangles = new Triangle*[d->triangleCount + 1];
-    d->triangles[d->triangleCount] = 0;
     // offset of the first vertex or index position to write into
     size_t vertexOffset = 0;
     size_t indexOffset = 0;
@@ -222,7 +216,7 @@ namespace Aort {
         const Vertex &v1 = d->vertices[d->indices[indexOffset + j * 3 + 0]];
         const Vertex &v2 = d->vertices[d->indices[indexOffset + j * 3 + 1]];
         const Vertex &v3 = d->vertices[d->indices[indexOffset + j * 3 + 2]];
-        d->triangles[triangleOffset + j] = new Triangle(v1.position, v2.position, v3.position, v1.normal, v2.normal, v3.normal, v1.texCoord, v2.texCoord, v3.texCoord, material);
+        d->triangles.push_back(new Triangle(v1.position, v2.position, v3.position, v1.normal, v2.normal, v3.normal, v1.texCoord, v2.texCoord, v3.texCoord, material));
       }
       // update vertex and index offsets
       if (!subMesh->useSharedVertices)
@@ -236,11 +230,7 @@ namespace Aort {
     delete d;
   }
 
-  const size_t MeshParser::triangleCount() const {
-    return d->triangleCount;
-  }
-
-  Triangle **MeshParser::triangles() const {
+  const std::vector<Triangle *> &MeshParser::triangles() const {
     return d->triangles;
   }
 }

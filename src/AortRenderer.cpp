@@ -111,13 +111,18 @@ namespace Aort {
           // calculate light vector
           Ogre::Vector3 L = lights.at(i)->getPosition() - P;
           Ogre::Real length = L.normalise();
-          // calculate shade
-          Ogre::Real shade = calculateShade(P, L, length);
-          if (shade > std::numeric_limits<float>::epsilon()) {
+          // calculate illumination
+          Ogre::Real illumination = 0.0f;
+          if (lights.at(i)->getType() == Aort::LT_POINT)
+            illumination = calculateIllumination(P, L, length);
+          else if (lights.at(i)->getType() == LT_AREA)
+            illumination = calculateIllumination(P, lights.at(i));
+          // if not completely unlit
+          if (illumination > std::numeric_limits<float>::epsilon()) {
             // add diffuse
-            finalColour += shade * calculateDiffuse(N, L) * diffuseColour * lights.at(i)->getDiffuseColour();
+            finalColour += illumination * calculateDiffuse(N, L) * diffuseColour * lights.at(i)->getDiffuseColour();
             // add specular
-            finalColour += shade * calculateSpecular(V, N, L) * specularColour * lights.at(i)->getSpecularColour();
+            finalColour += illumination * calculateSpecular(V, N, L) * specularColour * lights.at(i)->getSpecularColour();
           }
         }
         // TODO: make maxDepth configurable
@@ -135,11 +140,28 @@ namespace Aort {
       return finalColour;
     }
 
-    Ogre::Real calculateShade(const Ogre::Vector3 &P, const Ogre::Vector3 &L, Ogre::Real length) {
-      // TODO: implement area lights and thus soft shadows
+    Ogre::Real calculateIllumination(const Ogre::Vector3 &P, const Ogre::Vector3 &L, Ogre::Real length) {
       if (rootNode->hit(Ogre::Ray(P, L), EPSILON, length))
         return 0.0f;
       return 1.0f;
+    }
+
+    Ogre::Real calculateIllumination(const Ogre::Vector3 &P, Light *light) {
+      Ogre::Real illumination = 0;
+      // get some control points on the light
+      const Ogre::Vector3 *points = light->getPoints();
+      // check for null
+      if (!points)
+        return 0.0f;
+      // check if visible from current point
+      for (int i = 0; i < 16; ++i) {
+        Ogre::Vector3 L = points[i] - P;
+        Ogre::Real length = L.normalise();
+        // if visible contribute to the illumination
+        if (!rootNode->hit(Ogre::Ray(P, L), EPSILON, length))
+          illumination += 1.0f / 16.0f;
+      }
+      return illumination;
     }
 
     Ogre::Real calculateDiffuse(const Ogre::Vector3 &N, const Ogre::Vector3 &L) {

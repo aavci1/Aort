@@ -176,7 +176,7 @@ void MainWindow::windowCreated() {
   OgreManager::instance()->sceneManager()->getRootSceneNode()->createChildSceneNode()->attachObject(floor);
   // create a light
   Ogre::Light *light = OgreManager::instance()->sceneManager()->createLight();
-  light->setType(Ogre::Light::LT_POINT);
+  light->setType(Ogre::Light::LT_DIRECTIONAL);
   light->setDiffuseColour(0.5f, 0.5f, 0.5f);
   light->setSpecularColour(1.0f, 1.0f, 1.0f);
   // attach the light to the scene

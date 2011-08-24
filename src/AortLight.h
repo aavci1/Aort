@@ -31,8 +31,10 @@ namespace Aort {
     const Ogre::Vector3 &getDirection() const;
     void setDirection(const Ogre::Vector3 &direction);
 
-    const Ogre::Vector2 &getSize();
+    const Ogre::Vector2 &getSize() const;
     void setSize(const Ogre::Vector2 &size);
+
+    const Ogre::Vector3 *getPoints() const;
 
   private:
     LightPrivate *d;

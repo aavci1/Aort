@@ -1,8 +1,8 @@
 #include "MainWindow.h"
 
+#include "AortRenderer.h"
 #include "LanguageManager.h"
 #include "OgreManager.h"
-#include "OgreRenderer.h"
 
 #include <QDateTime>
 #include <QDesktopServices>
@@ -119,7 +119,7 @@ void MainWindow::render() {
   int width = 800;
   int height = 545;
   // render the scene
-  QImage render = OgreRenderer().render(OgreManager::instance()->sceneManager()->getRootSceneNode(), camera, width, height);
+  QImage render = Aort::Renderer().render(OgreManager::instance()->sceneManager()->getRootSceneNode(), camera, width, height);
   // save image file
   QString fileName = QString("render-%1-%2x%3.png").arg(QDateTime::currentDateTime().toString("yyyyMMddHHmm")).arg(width).arg(height);
   QString path = QFileDialog::getSaveFileName(this, tr("Save File"), QDesktopServices::storageLocation(QDesktopServices::DocumentsLocation) + "/" + fileName, tr("Image Files (*.png *.jpg *.jpeg)"));

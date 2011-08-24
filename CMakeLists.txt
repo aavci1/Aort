@@ -14,15 +14,18 @@ include_directories (${CMAKE_BINARY_DIR} ${CMAKE_SOURCE_DIR}/src)
 set (CMAKE_CXX_FLAGS "-fopenmp")
 # add sources
 set (SOURCES
-  src/KdTree.cpp
+  src/AortLight.cpp
+  src/AortMaterial.cpp
+  src/AortMeshParser.cpp
+  src/AortRenderer.cpp
+  src/AortSceneNode.cpp
+  src/AortTexture.cpp
+  src/AortTriangle.cpp
   src/LanguageManager.cpp
   src/Main.cpp
   src/MainWindow.cpp
-  src/MeshInfo.cpp
   src/OgreManager.cpp
-  src/OgreRenderer.cpp
   src/OgreWidget.cpp
-  src/Triangle.cpp
  )
 # add ui files
 qt4_wrap_ui (UI_SOURCES
@@ -32,11 +35,8 @@ qt4_wrap_ui (UI_SOURCES
 qt4_wrap_cpp (MOC_SOURCES
   src/LanguageManager.h
   src/MainWindow.h
-  src/MeshInfo.h
   src/OgreManager.h
-  src/OgreRenderer.h
   src/OgreWidget.h
-  src/Triangle.h
 )
 # add resources
 qt4_add_resources (RESOURCES

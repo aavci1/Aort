@@ -16,6 +16,7 @@
 
 #include <OGRE/OgreCamera.h>
 #include <OGRE/OgreEntity.h>
+#include <OGRE/OgreMeshManager.h>
 #include <OGRE/OgreRenderWindow.h>
 #include <OGRE/OgreSceneManager.h>
 #include <OGRE/OgreViewport.h>
@@ -104,7 +105,10 @@ void MainWindow::open() {
   // delete previous entities
   objectNode->removeAndDestroyAllChildren();
   // load and attach the new entity
-  objectNode->createChildSceneNode()->attachObject(OgreManager::instance()->loadMesh(path));
+  Ogre::Entity *object = OgreManager::instance()->loadMesh(path);
+  objectNode->createChildSceneNode()->attachObject(object);
+  // put object just on the ground
+  object->getParentSceneNode()->translate(0, -(object->getBoundingBox().getMinimum().y + object->getBoundingBox().getSize().y * Ogre::MeshManager::getSingletonPtr()->getBoundsPaddingFactor()), 0.0f);
 }
 
 void MainWindow::translate(QAction *action) {
@@ -162,6 +166,14 @@ void MainWindow::windowCreated() {
   cameraNode->attachObject(camera);
   // create object node
   objectNode = OgreManager::instance()->sceneManager()->getRootSceneNode()->createChildSceneNode();
+  // create floor plane
+  Ogre::MeshManager::getSingletonPtr()->createPlane("Floor", Ogre::ResourceGroupManager::DEFAULT_RESOURCE_GROUP_NAME, Ogre::Plane(Ogre::Vector3::UNIT_Y, 0), 10000, 10000, 1, 1, true, 1, 100, 100, Ogre::Vector3::UNIT_Z);
+  // create floor entity
+  Ogre::Entity *floor = OgreManager::instance()->sceneManager()->createEntity("Floor");
+  // assign a texture to the floor
+  floor->setMaterialName("Floor/Laminate");
+  // add the floor to the scene
+  OgreManager::instance()->sceneManager()->getRootSceneNode()->createChildSceneNode()->attachObject(floor);
   // create a light
   Ogre::Light *light = OgreManager::instance()->sceneManager()->createLight();
   light->setType(Ogre::Light::LT_POINT);

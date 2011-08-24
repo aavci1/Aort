@@ -58,9 +58,9 @@ OgreManager::OgreManager(MainWindow *parent) : QObject(parent), d(new OgreManage
   // create 1x1 top level window
   createWindow(parent, 1, 1);
   // add resource locations
-  Ogre::ResourceGroupManager::getSingleton().addResourceLocation("media/materials", "FileSystem", "General");
-  Ogre::ResourceGroupManager::getSingleton().addResourceLocation("media/meshes", "FileSystem", "General");
-  Ogre::ResourceGroupManager::getSingleton().addResourceLocation("media/textures", "FileSystem", "General");
+  Ogre::ResourceGroupManager::getSingleton().addResourceLocation("media/materials", "FileSystem");
+  Ogre::ResourceGroupManager::getSingleton().addResourceLocation("media/meshes", "FileSystem");
+  Ogre::ResourceGroupManager::getSingleton().addResourceLocation("media/textures", "FileSystem");
   // load resources
   Ogre::ResourceGroupManager::getSingleton().initialiseAllResourceGroups();
   // create the scene manager

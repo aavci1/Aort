@@ -3,12 +3,7 @@
 
 #include <QObject>
 
-namespace Ogre {
-  class Camera;
-  class Entity;
-  class RenderWindow;
-  class SceneManager;
-}
+#include <OGRE/OgrePrerequisites.h>
 
 class MainWindow;
 
@@ -16,7 +11,6 @@ class OgreManagerPrivate;
 
 class OgreManager : public QObject {
   Q_OBJECT
-
 public:
   OgreManager(MainWindow *parent);
   ~OgreManager();

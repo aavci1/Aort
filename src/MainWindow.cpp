@@ -78,6 +78,11 @@ void MainWindow::mouseMoved(QMouseEvent *event) {
     cameraNode->getParentSceneNode()->pitch(Ogre::Degree(-0.25f * (event->y() - mousePosition.y())));
     // update view
     ogreWidget->update();
+  } else if (event->buttons() == Qt::RightButton) {
+    // update camera position
+    cameraNode->translate(Ogre::Vector3(mousePosition.x() - event->pos().x(), event->pos().y() - mousePosition.y(), 0));
+    // update view
+    ogreWidget->update();
   }
   // update mouse position
   mousePosition = event->pos();

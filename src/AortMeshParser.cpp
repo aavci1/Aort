@@ -114,7 +114,7 @@ namespace Aort {
     }
   }
 
-  void readNormals(Ogre::VertexData *vertexData, Vertex *vertices, size_t vertexOffset, const Ogre::Vector3 &position, const Ogre::Quaternion &orientation, const Ogre::Vector3 &scale) {
+  void readNormals(Ogre::VertexData *vertexData, Vertex *vertices, size_t vertexOffset, const Ogre::Quaternion &orientation) {
     // get normal data
     const Ogre::VertexElement *normalElement = vertexData->vertexDeclaration->findElementBySemantic(Ogre::VES_NORMAL);
     if (normalElement) {
@@ -124,8 +124,7 @@ namespace Aort {
         float *start = 0;
         // get normal data for this vertex
         normalElement->baseVertexPointerToElement(normalData, &start);
-        vertices[vertexOffset + j].normal = (orientation * (Ogre::Vector3(start[0], start[1], start[2]) * scale)) + position;
-        vertices[vertexOffset + j].normal.normalise();
+        vertices[vertexOffset + j].normal = orientation * Ogre::Vector3(start[0], start[1], start[2]);
         // advance by vertex size
         normalData += normalBuffer->getVertexSize();
       }
@@ -189,7 +188,7 @@ namespace Aort {
     // extract shared vertices
     if (useSharedVertices) {
       readPositions(mesh->sharedVertexData, d->vertices, vertexOffset, position, orientation, scale);
-      readNormals(mesh->sharedVertexData, d->vertices, vertexOffset, position, orientation, scale);
+      readNormals(mesh->sharedVertexData, d->vertices, vertexOffset, orientation);
       readTexCoords(mesh->sharedVertexData, d->vertices, vertexOffset);
       vertexOffset += mesh->sharedVertexData->vertexCount;
     }
@@ -200,7 +199,7 @@ namespace Aort {
       // extract vertices if not using shared vertices
       if (!subMesh->useSharedVertices) {
         readPositions(subMesh->vertexData, d->vertices, vertexOffset, position, orientation, scale);
-        readNormals(subMesh->vertexData, d->vertices, vertexOffset, position, orientation, scale);
+        readNormals(subMesh->vertexData, d->vertices, vertexOffset, orientation);
         readTexCoords(subMesh->vertexData, d->vertices, vertexOffset);
       }
       // extract indices

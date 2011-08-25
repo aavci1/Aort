@@ -70,7 +70,8 @@ namespace Aort {
       // TODO: read reflectivity
       material->setReflectivity(0.25f);
       // parse first texture
-      if (pass->getNumTextureUnitStates()) {
+      if (pass->getNumTextureUnitStates() && pass->getTextureUnitState(0)->getTextureName() != "") {
+        // create texture object
         Texture *texture = new Texture();
         // get texture unit state object
         Ogre::TextureUnitState *tus = pass->getTextureUnitState(0);

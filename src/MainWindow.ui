@@ -53,9 +53,9 @@
    </attribute>
    <addaction name="actionOpen"/>
    <addaction name="separator"/>
-   <addaction name="actionLanguage"/>
-   <addaction name="separator"/>
    <addaction name="actionRender"/>
+   <addaction name="separator"/>
+   <addaction name="actionLanguage"/>
    <addaction name="separator"/>
    <addaction name="actionHelp"/>
    <addaction name="actionAbout"/>

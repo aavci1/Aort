@@ -74,16 +74,12 @@ namespace Aort {
         Texture *texture = new Texture();
         // get texture unit state object
         Ogre::TextureUnitState *tus = pass->getTextureUnitState(0);
-        // get ogre texture
-        Ogre::TexturePtr texturePtr = Ogre::TextureManager::getSingletonPtr()->getByName(tus->getTextureName());
-        if (!texturePtr.isNull()) {
-          // create an image
-          Ogre::Image *image = new Ogre::Image();
-          // convert texture to image
-          texturePtr.getPointer()->convertToImage(*image);
-          // set texture image
-          texture->setImage(image);
-        }
+        // create an image
+        Ogre::Image *image = new Ogre::Image();
+        // load image
+        image->load(tus->getTextureName(), Ogre::ResourceGroupManager::DEFAULT_RESOURCE_GROUP_NAME);
+        // set texture image
+        texture->setImage(image);
         // parse texture properties
         texture->setTransform(tus->getTextureTransform());
         texture->setFilter(tus->getTextureFiltering(Ogre::FT_MIN));

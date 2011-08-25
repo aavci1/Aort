@@ -104,11 +104,11 @@ Ogre::RenderWindow *OgreManager::createWindow(QWidget *widget, int width, int he
   return window;
 }
 
-Ogre::Camera *OgreManager::createCamera(QString name) {
+Ogre::Camera *OgreManager::createCamera(const QString &name) {
   return d->sceneManager->createCamera(name.toStdString());
 }
 
-Ogre::Entity *OgreManager::loadMesh(QString path) {
+Ogre::Entity *OgreManager::loadMesh(const QString &path) {
   Ogre::String source = path.toStdString();
   // load the mesh file content
   Ogre::DataStreamPtr stream(new Ogre::FileStreamDataStream(new std::ifstream(source.c_str())));

@@ -21,8 +21,8 @@ public:
 
 public slots:
   Ogre::RenderWindow *createWindow(QWidget *widget, int width, int height);
-  Ogre::Camera *createCamera(QString name);
-  Ogre::Entity *loadMesh(QString path);
+  Ogre::Camera *createCamera(const QString &name);
+  Ogre::Entity *loadMesh(const QString &path);
 
 private:
   OgreManagerPrivate *d;

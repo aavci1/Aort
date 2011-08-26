@@ -44,4 +44,4 @@ qt4_add_resources (RESOURCES
 )
 # add executable
 add_executable (Aort WIN32 ${SOURCES} ${MOC_SOURCES} ${UI_SOURCES} ${RESOURCES} resources.rc)
-target_link_libraries (Aort ${QT_LIBRARIES} OgreMain)
+target_link_libraries (Aort ${QT_LIBRARIES} OgreMain assimp)

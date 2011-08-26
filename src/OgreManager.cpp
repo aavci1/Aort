@@ -11,6 +11,11 @@
 #include <OGRE/OgreRenderWindow.h>
 #include <OGRE/OgreRoot.h>
 #include <OGRE/OgreSceneManager.h>
+#include <OGRE/OgreSubMesh.h>
+
+#include <assimp/assimp.hpp>
+#include <assimp/aiPostProcess.h>
+#include <assimp/aiScene.h>
 
 #ifdef Q_WS_X11
 #include <QX11Info>
@@ -66,7 +71,7 @@ OgreManager::OgreManager(MainWindow *parent) : QObject(parent), d(new OgreManage
   // create the scene manager
   d->sceneManager = Ogre::Root::getSingleton().createSceneManager(Ogre::ST_GENERIC);
   // use stencil shadows
-  d->sceneManager->setShadowTechnique(Ogre::SHADOWTYPE_STENCIL_ADDITIVE);
+  d->sceneManager->setShadowTechnique(Ogre::SHADOWTYPE_NONE);
   // set up ambient light
   d->sceneManager->setAmbientLight(Ogre::ColourValue(0.1f, 0.1f, 0.1f));
 }
@@ -108,14 +113,117 @@ Ogre::Camera *OgreManager::createCamera(const QString &name) {
   return d->sceneManager->createCamera(name.toStdString());
 }
 
+
 Ogre::Entity *OgreManager::loadMesh(const QString &path) {
   Ogre::String source = path.toStdString();
-  // load the mesh file content
-  Ogre::DataStreamPtr stream(new Ogre::FileStreamDataStream(new std::ifstream(source.c_str())));
-  // create the mesh pointer
-  Ogre::MeshPtr meshPtr = Ogre::MeshManager::getSingleton().createManual(source, Ogre::ResourceGroupManager::DEFAULT_RESOURCE_GROUP_NAME);
-  // import mesh content into the mesh pointer
-  Ogre::MeshSerializer().importMesh(stream, meshPtr.getPointer());
+  // check file extension
+  if (path.toLower().endsWith(".mesh")) {
+    // load the mesh file content
+    Ogre::DataStreamPtr stream(new Ogre::FileStreamDataStream(new std::ifstream(source.c_str())));
+    // create the mesh pointer
+    Ogre::MeshPtr meshPtr = Ogre::MeshManager::getSingletonPtr()->createManual(source, Ogre::ResourceGroupManager::DEFAULT_RESOURCE_GROUP_NAME);
+    // import mesh content into the mesh pointer
+    Ogre::MeshSerializer().importMesh(stream, meshPtr.getPointer());
+  } else {
+    // try to loading the mesh using assimp
+    Assimp::Importer *importer = new Assimp::Importer();
+    const aiScene *scene = importer->ReadFile(source.c_str(), aiProcessPreset_TargetRealtime_MaxQuality | aiProcess_PreTransformVertices | aiProcess_TransformUVCoords | aiProcess_FlipUVs);
+    if (scene->HasMaterials()) {
+      // TODO: load materials
+    }
+    Ogre::MeshPtr meshPtr = Ogre::MeshManager::getSingletonPtr()->createManual(source, Ogre::ResourceGroupManager::DEFAULT_RESOURCE_GROUP_NAME);
+    Ogre::AxisAlignedBox aabb;
+    if (scene->HasMeshes()) {
+      for (int i = 0; i < scene->mNumMeshes; ++i) {
+        const struct aiMesh *aimesh = scene->mMeshes[i];
+        // create a submesh
+        Ogre::SubMesh *submesh = meshPtr->createSubMesh();
+        // create vertex buffer
+        submesh->useSharedVertices = false;
+        submesh->vertexData = new Ogre::VertexData();
+        submesh->vertexData->vertexStart = 0;
+        submesh->vertexData->vertexCount = aimesh->mNumVertices;
+        // create vertex declaration
+        Ogre::VertexDeclaration* declaration = submesh->vertexData->vertexDeclaration;
+        unsigned short start = 0;
+        size_t offset = 0;
+        // get pointers to the position, normal and texture coordinates arrays
+        aiVector3D *position = aimesh->mVertices;
+        aiVector3D *normal = aimesh->mNormals;
+        aiVector3D *texCoord = aimesh->mTextureCoords[0];
+        // create position element
+        if (position)
+          offset += declaration->addElement(start, offset, Ogre::VET_FLOAT3, Ogre::VES_POSITION).getSize();
+        // create normal element
+        if (normal)
+          offset += declaration->addElement(start, offset, Ogre::VET_FLOAT3, Ogre::VES_NORMAL).getSize();
+        // create texture coords element
+        if (texCoord)
+          offset += declaration->addElement(start, offset, Ogre::VET_FLOAT2, Ogre::VES_TEXTURE_COORDINATES).getSize();
+        // create vertex buffer
+        Ogre::HardwareVertexBufferSharedPtr vertexBuffer = Ogre::HardwareBufferManager::getSingletonPtr()->createVertexBuffer(declaration->getVertexSize(start),
+            submesh->vertexData->vertexCount,
+            Ogre::HardwareBuffer::HBU_STATIC_WRITE_ONLY);
+        // get vertex buffer
+        float* vertexData = static_cast<float*>(vertexBuffer->lock(Ogre::HardwareBuffer::HBL_DISCARD));
+        // parse vertices
+        for (size_t j = 0; j < aimesh->mNumVertices; ++j) {
+          // vertex position
+          if (aimesh->HasPositions()) {
+            *vertexData++ = position->x;
+            *vertexData++ = position->y;
+            *vertexData++ = position->z;
+            // next vertex
+            position++;
+            // update bounding box
+            aabb.merge(Ogre::Vector3(position->x, position->y, position->z));
+          }
+          // vertex normal
+          if (aimesh->HasNormals()) {
+            *vertexData++ = normal->x;
+            *vertexData++ = normal->y;
+            *vertexData++ = normal->z;
+            // next vertex
+            normal++;
+          }
+          // texture coordinates
+          if (aimesh->HasTextureCoords(0)) {
+            *vertexData++ = texCoord->x;
+            *vertexData++ = texCoord->y;
+            // next vertex
+            texCoord++;
+          }
+        }
+        vertexBuffer->unlock();
+        // bind the buffer
+        submesh->vertexData->vertexBufferBinding->setBinding(start, vertexBuffer);
+        // create index data
+        submesh->indexData->indexStart = 0;
+        submesh->indexData->indexCount = aimesh->mNumFaces * 3;
+        // get pointer to the face data
+        aiFace *f = aimesh->mFaces;
+        // index buffer
+        submesh->indexData->indexBuffer = Ogre::HardwareBufferManager::getSingletonPtr()->createIndexBuffer(Ogre::HardwareIndexBuffer::IT_16BIT,
+                                          submesh->indexData->indexCount,
+                                          Ogre::HardwareBuffer::HBU_STATIC_WRITE_ONLY);
+        Ogre::uint16* idata = static_cast<Ogre::uint16*>(submesh->indexData->indexBuffer->lock(Ogre::HardwareBuffer::HBL_DISCARD));
+        // faces
+        for (size_t j = 0; j < aimesh->mNumFaces; ++j) {
+          *idata++ = f->mIndices[0];
+          *idata++ = f->mIndices[1];
+          *idata++ = f->mIndices[2];
+          // next face
+          f++;
+        }
+        submesh->indexData->indexBuffer->unlock();
+        // TODO: assign material
+      }
+    }
+    meshPtr->_setBounds(aabb);
+    meshPtr->_setBoundingSphereRadius((aabb.getMaximum() - aabb.getMinimum()).length() * 0.5f);
+    // clean up
+    delete importer;
+  }
   // create and return an entity from the mesh
   return d->sceneManager->createEntity(source);
 }

@@ -127,7 +127,33 @@ Ogre::Entity *OgreManager::loadMesh(const QString &path) {
   } else {
     // try to loading the mesh using assimp
     Assimp::Importer *importer = new Assimp::Importer();
-    const aiScene *scene = importer->ReadFile(source.c_str(), aiProcessPreset_TargetRealtime_MaxQuality | aiProcess_PreTransformVertices | aiProcess_TransformUVCoords | aiProcess_FlipUVs);
+    const aiScene *scene = importer->ReadFile(source.c_str(),
+                                              aiProcess_CalcTangentSpace |
+                                              aiProcess_JoinIdenticalVertices |
+                                              aiProcess_Triangulate |
+                                              // aiProcess_RemoveComponent |
+                                              // aiProcess_GenNormals |
+                                              aiProcess_GenSmoothNormals |
+                                              // aiProcess_SplitLargeMeshes |
+                                              // aiProcess_PreTransformVertices |
+                                              // aiProcess_LimitBoneWeights |
+                                              // aiProcess_ValidateDataStructure |
+                                              aiProcess_ImproveCacheLocality |
+                                              aiProcess_RemoveRedundantMaterials |
+                                              aiProcess_FixInfacingNormals |
+                                              aiProcess_SortByPType |
+                                              aiProcess_FindDegenerates |
+                                              aiProcess_FindInvalidData |
+                                              aiProcess_GenUVCoords |
+                                              aiProcess_TransformUVCoords |
+                                              // aiProcess_FindInstances |
+                                              aiProcess_OptimizeMeshes |
+                                              aiProcess_OptimizeGraph |
+                                              aiProcess_FlipUVs
+                                              // aiProcess_FlipWindingOrder |
+                                              // aiProcess_SplitByBoneCount |
+                                              // aiProcess_Debone
+                                              );
     if (scene->HasMaterials()) {
       // TODO: load materials
     }
@@ -136,6 +162,10 @@ Ogre::Entity *OgreManager::loadMesh(const QString &path) {
     if (scene->HasMeshes()) {
       for (int i = 0; i < scene->mNumMeshes; ++i) {
         const struct aiMesh *aimesh = scene->mMeshes[i];
+        // primitive contains primitives other than triangles skip
+        // should be use together with aiProcess_SortByType
+        if (aimesh->mPrimitiveTypes & (aiPrimitiveType_POINT | aiPrimitiveType_LINE | aiPrimitiveType_POLYGON))
+          continue;
         // create a submesh
         Ogre::SubMesh *submesh = meshPtr->createSubMesh();
         // create vertex buffer
@@ -203,10 +233,10 @@ Ogre::Entity *OgreManager::loadMesh(const QString &path) {
         // get pointer to the face data
         aiFace *f = aimesh->mFaces;
         // index buffer
-        submesh->indexData->indexBuffer = Ogre::HardwareBufferManager::getSingletonPtr()->createIndexBuffer(Ogre::HardwareIndexBuffer::IT_16BIT,
+        submesh->indexData->indexBuffer = Ogre::HardwareBufferManager::getSingletonPtr()->createIndexBuffer(Ogre::HardwareIndexBuffer::IT_32BIT,
                                           submesh->indexData->indexCount,
                                           Ogre::HardwareBuffer::HBU_STATIC_WRITE_ONLY);
-        Ogre::uint16* idata = static_cast<Ogre::uint16*>(submesh->indexData->indexBuffer->lock(Ogre::HardwareBuffer::HBL_DISCARD));
+        Ogre::uint32* idata = static_cast<Ogre::uint32*>(submesh->indexData->indexBuffer->lock(Ogre::HardwareBuffer::HBL_DISCARD));
         // faces
         for (size_t j = 0; j < aimesh->mNumFaces; ++j) {
           *idata++ = f->mIndices[0];

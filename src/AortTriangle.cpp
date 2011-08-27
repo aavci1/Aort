@@ -25,6 +25,7 @@ namespace Aort {
     Ogre::Vector2 texCoords[3];
     Ogre::Vector3 normal;
     Material *material;
+    Ogre::AxisAlignedBox aabb;
     // intersection
     Ogre::Vector3 b;
     Ogre::Vector3 c;
@@ -42,6 +43,10 @@ namespace Aort {
     d->positions[0] = p1;
     d->positions[1] = p2;
     d->positions[2] = p3;
+    // calculate aabb
+    d->aabb.merge(p1);
+    d->aabb.merge(p2);
+    d->aabb.merge(p3);
     // face normal
     d->normal = Ogre::Math::calculateBasicFaceNormal(p1, p2, p3);
     // vertex normals
@@ -87,6 +92,14 @@ namespace Aort {
 
   const Ogre::Vector2 Triangle::texCoord(const Ogre::Real u, const Ogre::Real v) const {
     return d->texCoords[0] * (1 - u - v) + d->texCoords[1] * u + d->texCoords[2] * v;
+  }
+
+  const Ogre::Vector3 Triangle::getMinimum() const {
+    return d->aabb.getMinimum();
+  }
+
+  const Ogre::Vector3 Triangle::getMaximum() const {
+    return d->aabb.getMaximum();
   }
 
   const Material *Triangle::getMaterial() const {

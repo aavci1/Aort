@@ -19,6 +19,10 @@ namespace Aort {
     const Ogre::Vector3 position(const int i) const;
     const Ogre::Vector3 normal(const Ogre::Real u, const Ogre::Real v) const;
     const Ogre::Vector2 texCoord(const Ogre::Real u, const Ogre::Real v) const;
+
+    const Ogre::Vector3 getMinimum() const;
+    const Ogre::Vector3 getMaximum() const;
+
     const Material *getMaterial() const;
 
     const bool intersects(const Ogre::Ray &ray, Ogre::Real &t, Ogre::Real &u, Ogre::Real &v) const;

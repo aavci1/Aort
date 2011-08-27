@@ -160,8 +160,10 @@ void MainWindow::windowCreated() {
   viewport = ogreWidget->renderWindow()->addViewport(camera);
   viewport->setBackgroundColour(Ogre::ColourValue(0, 0, 0));
   // create camera node
-  cameraNode = OgreManager::instance()->sceneManager()->getRootSceneNode()->createChildSceneNode()->createChildSceneNode(Ogre::Vector3(0.0f, 0.0f, 250.0f));
-  cameraNode->lookAt(Ogre::Vector3(0.0f, 0.0f, 0.0f), Ogre::SceneNode::TS_WORLD);
+  cameraNode = OgreManager::instance()->sceneManager()->getRootSceneNode()->createChildSceneNode()->createChildSceneNode(Ogre::Vector3(0.0f, 0.0f, 300.0f));
+  cameraNode->getParentSceneNode()->yaw(Ogre::Degree(30.0f));
+  cameraNode->getParentSceneNode()->pitch(Ogre::Degree(-30.0f));
+  cameraNode->lookAt(Ogre::Vector3(0.0f, 65.0f, 0.0f), Ogre::SceneNode::TS_WORLD);
   // attach camera to the node
   cameraNode->attachObject(camera);
   // create object node
@@ -180,7 +182,7 @@ void MainWindow::windowCreated() {
   light->setDiffuseColour(0.5f, 0.5f, 0.5f);
   light->setSpecularColour(1.0f, 1.0f, 1.0f);
   // attach the light to the scene
-  OgreManager::instance()->sceneManager()->getRootSceneNode()->createChildSceneNode(Ogre::Vector3(0.0f, 250.0f, 0.0f))->attachObject(light);
+  OgreManager::instance()->sceneManager()->getRootSceneNode()->createChildSceneNode(Ogre::Vector3(0.0f, 500.0f, 0.0f))->attachObject(light);
   // create a head light
   Ogre::Light *headLight = OgreManager::instance()->sceneManager()->createLight();
   headLight->setType(Ogre::Light::LT_POINT);

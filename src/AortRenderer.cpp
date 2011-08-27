@@ -25,7 +25,7 @@
 namespace Aort {
   class RendererPrivate {
   public:
-    RendererPrivate() : rootNode(0) {
+    RendererPrivate() : rootNode(0), rayCount(0) {
     }
 
     ~RendererPrivate() {
@@ -82,6 +82,7 @@ namespace Aort {
     }
 
     Ogre::ColourValue traceRay(const Ogre::Ray &ray, int depth = 0) {
+      rayCount++;
       // TODO: initialize color as background color
       Ogre::ColourValue finalColour = Ogre::ColourValue::Black;
       // trace ray using the kd-tree
@@ -185,6 +186,7 @@ namespace Aort {
     std::vector<Triangle *> triangles;
     std::vector<Light *> lights;
     SceneNode *rootNode;
+    size_t rayCount;
   };
 
   Renderer::Renderer() : d(new RendererPrivate()) {
@@ -195,10 +197,14 @@ namespace Aort {
   }
 
   QImage Renderer::render(Ogre::SceneNode *root, const Ogre::Camera *camera, const int width, const int height) {
+    // log message
+    Ogre::LogManager::getSingletonPtr()->logMessage("Building...");
     // extract entities and lights
     d->traverse(root);
     // build tree
     d->buildTree();
+    // log message
+    Ogre::LogManager::getSingletonPtr()->logMessage("Rendering...");
     // set ambient colour
     d->ambientColour = Ogre::ColourValue(0.0f, 0.0f, 0.0f);
     // create empty image
@@ -226,9 +232,14 @@ namespace Aort {
         scanline[x * 4 + 3] = colour.a * 255;
       }
     }
+    Ogre::LogManager::getSingletonPtr()->logMessage("Finished.");
+    Ogre::LogManager::getSingletonPtr()->logMessage("Number of triangles: " + QString::number(d->triangles.size()).toStdString());
+    Ogre::LogManager::getSingletonPtr()->logMessage("Number of rays: " + QString::number(d->rayCount).toStdString());
     // delete rootNode
     delete d->rootNode;
     d->rootNode = 0;
+    // reset ray count
+    d->rayCount = 0;
     // delete triangles
     qDeleteAll(d->triangles);
     d->triangles.clear();

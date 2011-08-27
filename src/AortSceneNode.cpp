@@ -6,25 +6,42 @@
 #include <OGRE/OgreRay.h>
 
 namespace Aort {
+  enum SplitPointType  {
+    Maximum = 0,
+    Minimum = 2
+  };
+
+  class SplitPoint {
+  public:
+    SplitPoint(Ogre::Real position, Triangle *triangle, SplitPointType type) : position(position), triangle(triangle), type(type) {
+    }
+
+    Ogre::Real position;
+    Triangle *triangle;
+    SplitPointType type;
+  };
+
+  // custom comparator for sweep events
+  bool splitPointCompare(const SplitPoint &s1, const SplitPoint &s2) {
+    if (s1.position < s2.position)
+      return true;
+    if (s1.position > s2.position)
+      return false;
+    return s1.type < s2.type;
+  }
+
   SceneNode::SceneNode() : data(6), splitPosition(0) {
   }
 
-  SceneNode::SceneNode(const Ogre::AxisAlignedBox &aabb, const void *pointer, size_t triangleCount) : data(6), splitPosition(0) {
-    setPointer(pointer);
-    split(aabb, triangleCount);
+  SceneNode::SceneNode(const Ogre::AxisAlignedBox &aabb, std::vector<Triangle *> triangles) : data(6), splitPosition(0) {
+    split(aabb, triangles);
   }
 
   SceneNode::~SceneNode() {
-    if (isLeaf()) {
-      Triangle **triangles = this->triangles();
-//    // delete triangles
-//    for (int i = 0; triangles[i] != 0; ++i)
-//      delete triangles[i];
-      // delete triangle array
-      delete[] triangles;
-    } else {
+    if (isLeaf())
+      delete[] triangles();
+    else
       delete[] nodes();
-    }
   }
 
   const bool SceneNode::hit(const Ogre::Ray &ray, Triangle *&triangle, Ogre::Real &t, Ogre::Real &u, Ogre::Real &v, const Ogre::Real t_min, const Ogre::Real t_max) const {
@@ -93,11 +110,20 @@ namespace Aort {
     return false;
   }
 
-  void SceneNode::split(const Ogre::AxisAlignedBox &aabb, size_t triangleCount, const int depth) {
+  void SceneNode::split(const Ogre::AxisAlignedBox &aabb, std::vector<Triangle *> triangles, const int depth) {
     // if maximum depth or minimum triangle count has been reached, dont split
-    if (depth >= MAXIMUM_DEPTH || triangleCount <= MINIMUM_TRIANGLES_PER_LEAF)
+    if (depth >= MAXIMUM_DEPTH || triangles.size() <= MINIMUM_TRIANGLES_PER_LEAF) {
+      // create triangles array
+      Triangle** t = new Triangle*[triangles.size() + 1];
+      t[triangles.size()] = 0;
+      // copy triangle pointers
+      for (size_t i = 0; i < triangles.size(); ++i)
+        t[i] = triangles.at(i);
+      // save triangle pointer
+      setPointer(t);
+      // return
       return;
-    Triangle **triangles = this->triangles();
+    }
     // get bounding box size
     Ogre::Vector3 size = aabb.getSize();
     // assume first axis is the longest one
@@ -110,55 +136,60 @@ namespace Aort {
       splitAxis = 2;
     Ogre::Real a = size[(splitAxis + 1) % 3];
     Ogre::Real b = size[(splitAxis + 2) % 3];
-    Ogre::Real boxMinimum = aabb.getMinimum()[splitAxis];
-    Ogre::Real boxMaximum = aabb.getMaximum()[splitAxis];
-    std::vector<Ogre::Real> splitCandidates;
-    Ogre::Real *minimums = new Ogre::Real[triangleCount];
-    Ogre::Real *maximums = new Ogre::Real[triangleCount];
-    Ogre::Real *minimums2 = new Ogre::Real[triangleCount];
-    Ogre::Real *maximums2 = new Ogre::Real[triangleCount];
-    for (size_t i = 0; i < triangleCount; ++i) {
-      Ogre::Real minimum = std::min(std::min(triangles[i]->position(0)[splitAxis], triangles[i]->position(1)[splitAxis]),
-                                    triangles[i]->position(2)[splitAxis]);
-      Ogre::Real maximum = std::max(std::max(triangles[i]->position(0)[splitAxis], triangles[i]->position(1)[splitAxis]),
-                                    triangles[i]->position(2)[splitAxis]);
-      minimums[i] = minimum;
-      maximums[i] = maximum;
-      minimums2[i] = minimum;
-      maximums2[i] = maximum;
-      if (minimum > boxMinimum)
-        splitCandidates.push_back(minimum);
-      if (maximum < boxMaximum)
-        splitCandidates.push_back(maximum);
+    Ogre::Real minimum = aabb.getMinimum()[splitAxis];
+    Ogre::Real maximum = aabb.getMaximum()[splitAxis];
+    std::vector<SplitPoint> splitPoints;
+    // generate split points
+    for (size_t i = 0; i < triangles.size(); ++i) {
+      // clip triangle to the bounding box
+      Ogre::Real min = std::max(triangles.at(i)->getMinimum()[splitAxis], minimum);
+      Ogre::Real max = std::min(triangles.at(i)->getMaximum()[splitAxis], maximum);
+      // push split points
+      splitPoints.push_back(SplitPoint(min, triangles.at(i), Minimum));
+      splitPoints.push_back(SplitPoint(max, triangles.at(i), Maximum));
     }
-    // sort split candidates
-    std::sort(splitCandidates.begin(), splitCandidates.end());
-    std::sort(minimums, minimums + triangleCount);
-    std::sort(maximums, maximums + triangleCount);
-    size_t leftCount = 0;
-    size_t rightCount = 0;
-    Ogre::Real lowestCost = FLT_MAX;
-    for (size_t i = 0; i < splitCandidates.size(); ++i) {
-      size_t left = 0;
-      while (left < triangleCount && minimums[left] <= splitCandidates.at(i))
-        left++;
-      size_t right = 0;
-      while (right < triangleCount && maximums[triangleCount - right - 1] > splitCandidates.at(i))
-        right++;
-      // calculate surface areas of left and right boxes
-      Ogre::Real SAL = (splitCandidates.at(i) - boxMinimum) * (a + b) + a * b;
-      Ogre::Real SAR = (boxMaximum - splitCandidates.at(i)) * (a + b) + a * b;
-      // calculate splitting cost
-      Ogre::Real cost = SAL * left + SAR * right;
-      if (cost < lowestCost) {
-        lowestCost = cost;
-        splitPosition = splitCandidates.at(i);
-        leftCount = left;
-        rightCount = right;
+    // sort events
+    std::sort(splitPoints.begin(), splitPoints.end(), splitPointCompare);
+    // find the best split point
+    Ogre::Real splitCost = FLT_MAX;
+    size_t left = 0, right = triangles.size();
+    for (size_t i = 0; i < splitPoints.size(); ++i) {
+      Ogre::Real position = splitPoints.at(i).position;
+      // count points at this point
+      size_t e = 0, s = 0;
+      while ((i < splitPoints.size()) && (splitPoints.at(i).position == position)) {
+        if (splitPoints.at(i).type == Maximum)
+          e++;
+        else
+          s++;
+        i++;
+      }
+      // update triangle counts
+      right -= e;
+      left += s;
+      // avoid re-creating the same node
+      if ((position == minimum && left == 0) || (position == maximum && right == 0))
+        continue;
+      // calculate cost of splitting
+      Ogre::Real cost = ((position - minimum) * (a + b) + a * b) * left + ((maximum - position) * (a + b) + a * b) * right;
+      // update optimal point if needed
+      if (cost < splitCost) {
+        splitCost = cost;
+        splitPosition = position;
       }
     }
-    if (lowestCost > (size[splitAxis] * (a + b) + a * b) * triangleCount)
+    if (splitCost >= (size[splitAxis] * (a + b) + a * b) * triangles.size()) {
+      // create triangles array
+      Triangle** t = new Triangle*[triangles.size() + 1];
+      t[triangles.size()] = 0;
+      // copy triangle pointers
+      for (size_t i = 0; i < triangles.size(); ++i)
+        t[i] = triangles.at(i);
+      // save triangle pointer
+      setPointer(t);
+      // return
       return;
+    }
     // split
     setLeaf(false);
     setAxis(splitAxis);
@@ -169,27 +200,13 @@ namespace Aort {
     // create node
     SceneNode *rightNode = nodes() + 1;
     // add triangles
-    Triangle **leftTriangles = new Triangle*[leftCount + 1];
-    Triangle **rightTriangles = new Triangle*[rightCount + 1];
-    size_t l = 0, r = 0;
-    for (size_t j = 0; j < triangleCount; ++j) {
-      if (l < leftCount && minimums2[j] <= splitPosition)
-        leftTriangles[l++] = triangles[j];
-      if (r < rightCount && maximums2[j] > splitPosition)
-        rightTriangles[r++] = triangles[j];
+    std::vector<Triangle *> leftTriangles, rightTriangles;
+    for (size_t i = 0; i < triangles.size(); ++i) {
+      if (triangles.at(i)->getMinimum()[splitAxis] <= splitPosition)
+        leftTriangles.push_back(triangles[i]);
+      if (triangles.at(i)->getMaximum()[splitAxis] > splitPosition)
+        rightTriangles.push_back(triangles[i]);
     }
-    leftTriangles[leftCount] = 0;
-    rightTriangles[rightCount] = 0;
-    // remove triangles from this node
-    delete[] triangles;
-    delete[] minimums;
-    delete[] maximums;
-    delete[] minimums2;
-    delete[] maximums2;
-    // set left triangles
-    leftNode->setPointer(leftTriangles);
-    // set right triangles
-    rightNode->setPointer(rightTriangles);
     // calculate left bounding box
     Ogre::AxisAlignedBox lbb = aabb;
     lbb.getMaximum()[splitAxis] = splitPosition;
@@ -197,9 +214,9 @@ namespace Aort {
     Ogre::AxisAlignedBox rbb = aabb;
     rbb.getMinimum()[splitAxis] = splitPosition;
     // split left node
-    leftNode->split(lbb, leftCount, depth + 1);
+    leftNode->split(lbb, leftTriangles, depth + 1);
     // split right node
-    rightNode->split(rbb, rightCount, depth + 1);
+    rightNode->split(rbb, rightTriangles, depth + 1);
   }
 
   const bool SceneNode::isLeaf() const {

@@ -65,7 +65,6 @@ namespace Aort {
     }
 
     void buildTree() {
-      std::vector<Triangle *> triangleList;
       Ogre::AxisAlignedBox aabb(Ogre::Vector3(0, 0, 0), Ogre::Vector3(0, 0, 0));
       // extract triangles from all meshes
       for (int i = 0; i < entities.size(); ++i) {
@@ -74,18 +73,12 @@ namespace Aort {
         // extract mesh info
         MeshParser *meshParser = new MeshParser(entities.at(i));
         // merge mesh triangles
-        triangleList.insert(triangleList.end(), meshParser->triangles().begin(), meshParser->triangles().end());
+        triangles.insert(triangles.end(), meshParser->triangles().begin(), meshParser->triangles().end());
         // delete mesh parser instance
         delete meshParser;
       }
-      // create triangle array
-      Triangle **triangles = new Triangle*[triangleList.size() + 1];
-      for (int i = 0; i < triangleList.size(); ++i)
-        triangles[i] = triangleList[i];
-      // put 0 at the end
-      triangles[triangleList.size()] = 0;
       // build the scene tree
-      rootNode = new SceneNode(aabb, triangles, triangleList.size());
+      rootNode = new SceneNode(aabb, triangles);
     }
 
     Ogre::ColourValue traceRay(const Ogre::Ray &ray, int depth = 0) {
@@ -189,6 +182,7 @@ namespace Aort {
 
     Ogre::ColourValue ambientColour;
     std::vector<Ogre::Entity *> entities;
+    std::vector<Triangle *> triangles;
     std::vector<Light *> lights;
     SceneNode *rootNode;
   };
@@ -232,12 +226,17 @@ namespace Aort {
         scanline[x * 4 + 3] = colour.a * 255;
       }
     }
-    // free memory
+    // delete rootNode
     delete d->rootNode;
-    // clean up
-    d->entities.clear();
-    d->lights.clear();
     d->rootNode = 0;
+    // delete triangles
+    qDeleteAll(d->triangles);
+    d->triangles.clear();
+    // delete lights
+    qDeleteAll(d->lights);
+    d->lights.clear();
+    // clean up entities
+    d->entities.clear();
     // return result
     return result;
   }

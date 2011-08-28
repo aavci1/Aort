@@ -5,8 +5,8 @@
 
 #include <float.h>
 
-#define MAXIMUM_DEPTH (64)
-#define MINIMUM_TRIANGLES_PER_LEAF (2)
+#define MAXIMUM_DEPTH (32)
+#define MINIMUM_TRIANGLES_PER_LEAF (4)
 
 namespace Aort {
   class Triangle;

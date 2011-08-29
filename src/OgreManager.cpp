@@ -163,7 +163,7 @@ Ogre::Entity *OgreManager::loadMesh(const QString &path) {
       for (int i = 0; i < scene->mNumMeshes; ++i) {
         const struct aiMesh *aimesh = scene->mMeshes[i];
         // primitive contains primitives other than triangles skip
-        // should be use together with aiProcess_SortByType
+        // should be use together with aiProcess_SortByPType
         if (aimesh->mPrimitiveTypes & (aiPrimitiveType_POINT | aiPrimitiveType_LINE | aiPrimitiveType_POLYGON))
           continue;
         // create a submesh

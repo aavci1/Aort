@@ -212,13 +212,14 @@ namespace Aort {
     // precalculate 1/width and 1/height
     Ogre::Real inverseWidth = 1.0f / width;
     Ogre::Real inverseHeight = 1.0f / height;
+    size_t rowsCompleted = 0;
 #ifndef NO_OMP
     #pragma omp parallel for
 #endif // !NO_OMP
     // start rendering
-    for (int y = 0; y < height; ++y) {
+    for (size_t y = 0; y < height; ++y) {
       uchar *scanline = result.scanLine(y);
-      for (int x = 0; x < width; ++x) {
+      for (size_t x = 0; x < width; ++x) {
         // create camera to viewport ray
         // and make sure that rays are not parallel to any axis
         Ogre::Ray ray = camera->getCameraToViewportRay(x * inverseWidth + std::numeric_limits<float>::epsilon(),
@@ -231,6 +232,10 @@ namespace Aort {
         scanline[x * 4 + 2] = colour.b * 255;
         scanline[x * 4 + 3] = colour.a * 255;
       }
+      // increase row count
+      rowsCompleted++;
+      // log message
+      Ogre::LogManager::getSingletonPtr()->logMessage("Progress: " + Ogre::StringConverter::toString(int(rowsCompleted * inverseHeight * 100), 3) + "%");
     }
     Ogre::LogManager::getSingletonPtr()->logMessage("Finished.");
     Ogre::LogManager::getSingletonPtr()->logMessage("Number of triangles: " + QString::number(d->triangles.size()).toStdString());

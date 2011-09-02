@@ -33,7 +33,7 @@ namespace Aort {
   SceneNode::SceneNode() : data(6), splitPosition(0) {
   }
 
-  SceneNode::SceneNode(const Ogre::AxisAlignedBox &aabb, std::vector<Triangle *> triangles) : data(6), splitPosition(0) {
+  SceneNode::SceneNode(const Ogre::AxisAlignedBox &aabb, std::vector<Triangle *> &triangles) : data(6), splitPosition(0) {
     split(aabb, triangles);
   }
 
@@ -110,7 +110,7 @@ namespace Aort {
     return false;
   }
 
-  void SceneNode::split(const Ogre::AxisAlignedBox &aabb, std::vector<Triangle *> triangles, const int depth) {
+  void SceneNode::split(const Ogre::AxisAlignedBox &aabb, std::vector<Triangle *> &triangles, const int depth) {
     // if maximum depth or minimum triangle count has been reached, dont split
     if (depth >= MAXIMUM_DEPTH || triangles.size() <= MINIMUM_TRIANGLES_PER_LEAF) {
       // create triangles array

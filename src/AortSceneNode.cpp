@@ -141,12 +141,9 @@ namespace Aort {
     std::vector<SplitPoint> splitPoints;
     // generate split points
     for (size_t i = 0; i < triangles.size(); ++i) {
-      // clip triangle to the bounding box
-      Ogre::Real min = std::max(triangles.at(i)->getMinimum()[splitAxis], minimum);
-      Ogre::Real max = std::min(triangles.at(i)->getMaximum()[splitAxis], maximum);
       // push split points
-      splitPoints.push_back(SplitPoint(min, triangles.at(i), Minimum));
-      splitPoints.push_back(SplitPoint(max, triangles.at(i), Maximum));
+      splitPoints.push_back(SplitPoint(triangles.at(i)->getMinimum()[splitAxis], triangles.at(i), Minimum));
+      splitPoints.push_back(SplitPoint(triangles.at(i)->getMaximum()[splitAxis], triangles.at(i), Maximum));
     }
     // sort events
     std::sort(splitPoints.begin(), splitPoints.end(), splitPointCompare);
@@ -155,21 +152,21 @@ namespace Aort {
     size_t left = 0, right = triangles.size();
     for (size_t i = 0; i < splitPoints.size(); ++i) {
       Ogre::Real position = splitPoints.at(i).position;
+      if (position <= minimum || position >= maximum)
+        continue;
       // count points at this point
       size_t e = 0, s = 0;
-      while ((i < splitPoints.size()) && (splitPoints.at(i).position == position)) {
+      while ((i < splitPoints.size()) && (splitPoints.at(i).position - position < std::numeric_limits<float>::epsilon())) {
         if (splitPoints.at(i).type == Maximum)
           e++;
         else
           s++;
         i++;
       }
-      // update triangle counts
+      // will be increased already
+      i--;
+      // update right
       right -= e;
-      left += s;
-      // avoid re-creating the same node
-      if ((position == minimum && left == 0) || (position == maximum && right == 0))
-        continue;
       // calculate cost of splitting
       Ogre::Real cost = ((position - minimum) * (a + b) + a * b) * left + ((maximum - position) * (a + b) + a * b) * right;
       // update optimal point if needed
@@ -177,6 +174,8 @@ namespace Aort {
         splitCost = cost;
         splitPosition = position;
       }
+      // update left
+      left += s;
     }
     if (splitCost >= (size[splitAxis] * (a + b) + a * b) * triangles.size()) {
       // create triangles array

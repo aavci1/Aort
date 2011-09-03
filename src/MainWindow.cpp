@@ -123,15 +123,16 @@ void MainWindow::render() {
   int width = 800;
   int height = 545;
   // render the scene
-  QImage render = Aort::Renderer().render(OgreManager::instance()->sceneManager()->getRootSceneNode(), camera, width, height);
-  // save image file
+  unsigned char *data = Aort::Renderer().render(OgreManager::instance()->sceneManager()->getRootSceneNode(), camera, width, height);
+  // construct default file name
   QString fileName = QString("render-%1-%2x%3.png").arg(QDateTime::currentDateTime().toString("yyyyMMddHHmm")).arg(width).arg(height);
+  // get path from the user
   QString path = QFileDialog::getSaveFileName(this, tr("Save File"), QDesktopServices::storageLocation(QDesktopServices::DocumentsLocation) + "/" + fileName, tr("Image Files (*.png *.jpg *.jpeg)"));
-  // return if open canceled
-  if (path.isNull())
-    return;
-  // save the image
-  render.save(path);
+  // save image
+  if (!path.isNull())
+    QImage(data, width, height, QImage::Format_ARGB32_Premultiplied).save(path);
+  // clean up
+  delete data;
 }
 
 void MainWindow::help() {

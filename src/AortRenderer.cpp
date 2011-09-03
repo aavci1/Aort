@@ -196,7 +196,7 @@ namespace Aort {
     delete d;
   }
 
-  QImage Renderer::render(Ogre::SceneNode *root, const Ogre::Camera *camera, const int width, const int height) {
+  unsigned char *Renderer::render(Ogre::SceneNode *root, const Ogre::Camera *camera, const int width, const int height) {
     // log message
     Ogre::LogManager::getSingletonPtr()->logMessage("Building...");
     // extract entities and lights
@@ -208,7 +208,7 @@ namespace Aort {
     // set ambient colour
     d->ambientColour = Ogre::ColourValue(0.0f, 0.0f, 0.0f);
     // create empty image
-    QImage result = QImage(width, height, QImage::Format_ARGB32_Premultiplied);
+    unsigned char *result = new unsigned char[height * width * 4];
     // precalculate 1/width and 1/height
     Ogre::Real inverseWidth = 1.0f / width;
     Ogre::Real inverseHeight = 1.0f / height;
@@ -218,7 +218,7 @@ namespace Aort {
 #endif // !NO_OMP
     // start rendering
     for (size_t y = 0; y < height; ++y) {
-      uchar *scanline = result.scanLine(y);
+      unsigned char *scanline = result + y * width * 4;
       for (size_t x = 0; x < width; ++x) {
         // create camera to viewport ray
         // and make sure that rays are not parallel to any axis
@@ -238,18 +238,20 @@ namespace Aort {
       Ogre::LogManager::getSingletonPtr()->logMessage("Progress: " + Ogre::StringConverter::toString(int(rowsCompleted * inverseHeight * 100), 3) + "%");
     }
     Ogre::LogManager::getSingletonPtr()->logMessage("Finished.");
-    Ogre::LogManager::getSingletonPtr()->logMessage("Number of triangles: " + QString::number(d->triangles.size()).toStdString());
-    Ogre::LogManager::getSingletonPtr()->logMessage("Number of rays: " + QString::number(d->rayCount).toStdString());
+    Ogre::LogManager::getSingletonPtr()->logMessage("Number of triangles: " + Ogre::StringConverter::toString(d->triangles.size()));
+    Ogre::LogManager::getSingletonPtr()->logMessage("Number of rays: " + Ogre::StringConverter::toString(d->rayCount));
     // delete rootNode
     delete d->rootNode;
     d->rootNode = 0;
     // reset ray count
     d->rayCount = 0;
     // delete triangles
-    qDeleteAll(d->triangles);
+    for (int i = 0; i < d->triangles.size(); ++i)
+      delete d->triangles.at(i);
     d->triangles.clear();
     // delete lights
-    qDeleteAll(d->lights);
+    for (int i = 0; i < d->lights.size(); ++i)
+      delete d->lights.at(i);
     d->lights.clear();
     // clean up entities
     d->entities.clear();

@@ -108,7 +108,7 @@ void MainWindow::open() {
   Ogre::Entity *object = OgreManager::instance()->loadMesh(path);
   objectNode->createChildSceneNode()->attachObject(object);
   // put object just on the ground
-  object->getParentSceneNode()->translate(0, -(object->getBoundingBox().getMinimum().y + object->getBoundingBox().getSize().y * Ogre::MeshManager::getSingletonPtr()->getBoundsPaddingFactor()), 0.0f);
+  object->getParentSceneNode()->translate(0, -(object->getWorldBoundingBox(true).getMinimum().y + object->getWorldBoundingBox(true).getSize().y * Ogre::MeshManager::getSingletonPtr()->getBoundsPaddingFactor()), 0.0f);
 }
 
 void MainWindow::translate(QAction *action) {

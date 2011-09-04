@@ -21,7 +21,7 @@ namespace Aort {
     SplitPointType type;
   };
 
-  // custom comparator for sweep events
+// custom comparator for sweep events
   bool splitPointCompare(const SplitPoint &s1, const SplitPoint &s2) {
     if (s1.position < s2.position)
       return true;
@@ -65,15 +65,16 @@ namespace Aort {
       // return result
       return (t != FLT_MAX);
     }
-    SceneNode *near = (ray.getDirection()[axis()] > 0) ? nodes() + 0 : nodes() + 1;
-    SceneNode *far = (ray.getDirection()[axis()] > 0) ? nodes() + 1 : nodes() + 0;
     // calculate distance to the split plane
     Ogre::Real t_split = (splitPosition - ray.getOrigin()[axis()]) / ray.getDirection()[axis()];
+    // determine near and far nodes
+    SceneNode *near = (ray.getOrigin()[axis()] < splitPosition) ? nodes() + 0 : nodes() + 1;
+    SceneNode *far = (ray.getOrigin()[axis()] < splitPosition) ? nodes() + 1 : nodes() + 0;
     // only intersects near node
-    if (t_min < t_split && t_max < t_split)
+    if ((t_split < 0) || (t_split > t_max))
       return near->hit(ray, triangle, t, u, v, t_min, t_max);
     // only intersects far node
-    if (t_min > t_split && t_max > t_split)
+    if (t_split < t_min)
       return far->hit(ray, triangle, t, u, v, t_min, t_max);
     // intersects both
     if (near->hit(ray, triangle, t, u, v, t_min, t_split))
@@ -98,15 +99,16 @@ namespace Aort {
       // no hit, return false
       return false;
     }
-    SceneNode *near = (ray.getDirection()[axis()] > 0) ? nodes() + 0 : nodes() + 1;
-    SceneNode *far = (ray.getDirection()[axis()] > 0) ? nodes() + 1 : nodes() + 0;
     // calculate distance to the split plane
     Ogre::Real t_split = (splitPosition - ray.getOrigin()[axis()]) / ray.getDirection()[axis()];
+    // determine near and far nodes
+    SceneNode *near = (ray.getOrigin()[axis()] < splitPosition) ? nodes() + 0 : nodes() + 1;
+    SceneNode *far = (ray.getOrigin()[axis()] < splitPosition) ? nodes() + 1 : nodes() + 0;
     // only intersects near node
-    if (t_min < t_split && t_max < t_split)
+    if ((t_split < 0) || (t_split > t_max))
       return near->hit(ray, t_min, t_max);
     // only intersects far node
-    if (t_min > t_split && t_max > t_split)
+    if (t_split < t_min)
       return far->hit(ray, t_min, t_max);
     // intersects both
     if (near->hit(ray, t_min, t_split))

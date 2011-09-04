@@ -25,7 +25,7 @@
 namespace Aort {
   class RendererPrivate {
   public:
-    RendererPrivate() : rootNode(0), rayCount(0) {
+    RendererPrivate() : ambientColour(0.0f, 0.0f, 0.0f), backgroundColour(0.0f, 0.0f, 0.0f), maxDepth(0), rootNode(0), rayCount(0) {
     }
 
     ~RendererPrivate() {
@@ -82,49 +82,49 @@ namespace Aort {
     }
 
     Ogre::ColourValue traceRay(const Ogre::Ray &ray, int depth = 0) {
-      rayCount++;
-      // TODO: initialize color as background color
-      Ogre::ColourValue finalColour = Ogre::ColourValue::Black;
       // trace ray using the kd-tree
       Triangle *triangle = 0;
       Ogre::Real t = FLT_MAX, u = 0, v = 0;
+      // increase ray count
+      rayCount++;
+      // if nothing hit, return background color
+      if (!rootNode->hit(ray, triangle, t, u, v))
+        return backgroundColour;
+      // final colour
+      Ogre::ColourValue finalColour(0.0f, 0.0f, 0.0f);
       // calculate view vector
       Ogre::Vector3 V = ray.getDirection();
-      if (rootNode->hit(ray, triangle, t, u, v)) {
-        // calculate hit point
-        Ogre::Vector3 P = ray.getPoint(t - EPSILON);
-        // calculate triangle normal
-        Ogre::Vector3 N = triangle->normal(u, v);
-        // add ambient lighting
-        finalColour += ambientColour * triangle->getMaterial()->getAmbient();
-        // get diffuse colour
-        Ogre::ColourValue diffuseColour = triangle->getMaterial()->getColourAt(triangle->texCoord(u, v));
-        // get specular colour
-        Ogre::ColourValue specularColour = triangle->getMaterial()->getSpecular();
-        for (int i = 0; i < lights.size(); ++i) {
-          // calculate light vector
-          Ogre::Vector3 L = lights.at(i)->getPosition() - P;
-          Ogre::Real length = L.normalise();
-          // calculate illumination
-          Ogre::Real illumination = 0.0f;
-          if (lights.at(i)->getType() == Aort::LT_POINT)
-            illumination = calculateIllumination(P, L, length);
-          else if (lights.at(i)->getType() == LT_AREA)
-            illumination = calculateIllumination(P, lights.at(i));
-          // if not completely unlit
-          if (illumination > std::numeric_limits<float>::epsilon()) {
-            // add diffuse
-            finalColour += illumination * calculateDiffuse(N, L) * diffuseColour * lights.at(i)->getDiffuseColour();
-            // add specular
-            finalColour += illumination * calculateSpecular(V, N, L) * specularColour * lights.at(i)->getSpecularColour();
-          }
+      // calculate hit point
+      Ogre::Vector3 P = ray.getPoint(t - EPSILON);
+      // calculate triangle normal
+      Ogre::Vector3 N = triangle->normal(u, v);
+      // add ambient lighting
+      finalColour += ambientColour * triangle->getMaterial()->getAmbient();
+      // get diffuse colour
+      Ogre::ColourValue diffuseColour = triangle->getMaterial()->getColourAt(triangle->texCoord(u, v));
+      // get specular colour
+      Ogre::ColourValue specularColour = triangle->getMaterial()->getSpecular();
+      for (int i = 0; i < lights.size(); ++i) {
+        // calculate light vector
+        Ogre::Vector3 L = lights.at(i)->getPosition() - P;
+        Ogre::Real length = L.normalise();
+        // calculate illumination
+        Ogre::Real illumination = 0.0f;
+        if (lights.at(i)->getType() == Aort::LT_POINT)
+          illumination = calculateIllumination(P, L, length);
+        else if (lights.at(i)->getType() == LT_AREA)
+          illumination = calculateIllumination(P, lights.at(i));
+        // if not completely unlit
+        if (illumination > std::numeric_limits<float>::epsilon()) {
+          // add diffuse
+          finalColour += illumination * calculateDiffuse(N, L) * diffuseColour * lights.at(i)->getDiffuseColour();
+          // add specular
+          finalColour += illumination * calculateSpecular(V, N, L) * specularColour * lights.at(i)->getSpecularColour();
         }
-        // TODO: make maxDepth configurable
-        int maxDepth = 3;
-        // add reflections
-        if (triangle->getMaterial()->getReflectivity() > std::numeric_limits<float>::epsilon() && depth < maxDepth)
-          finalColour += triangle->getMaterial()->getReflectivity() * calculateReflection(P, V, N, depth) * diffuseColour;
       }
+      // add reflections
+      if (triangle->getMaterial()->getReflectivity() > std::numeric_limits<float>::epsilon() && depth < maxDepth)
+        finalColour += triangle->getMaterial()->getReflectivity() * calculateReflection(P, V, N, depth) * diffuseColour;
       // set full opacity
       finalColour.r = Ogre::Math::Clamp(finalColour.r, 0.0f, 1.0f);
       finalColour.g = Ogre::Math::Clamp(finalColour.g, 0.0f, 1.0f);
@@ -135,9 +135,12 @@ namespace Aort {
     }
 
     Ogre::Real calculateIllumination(const Ogre::Vector3 &P, const Ogre::Vector3 &L, Ogre::Real length) {
-      if (rootNode->hit(Ogre::Ray(P, L), EPSILON, length))
-        return 0.0f;
-      return 1.0f;
+      // increase ray count
+      rayCount++;
+      // check for occluders
+      if (!rootNode->hit(Ogre::Ray(P, L), EPSILON, length))
+        return 1.0f;
+      return 0.0f;
     }
 
     Ogre::Real calculateIllumination(const Ogre::Vector3 &P, Light *light) {
@@ -151,7 +154,9 @@ namespace Aort {
       for (int i = 0; i < 16; ++i) {
         Ogre::Vector3 L = points[i] - P;
         Ogre::Real length = L.normalise();
-        // if visible contribute to the illumination
+        // increase ray count
+        rayCount++;
+        // check for occluders
         if (!rootNode->hit(Ogre::Ray(P, L), EPSILON, length))
           illumination += 1.0f / 16.0f;
       }
@@ -182,9 +187,11 @@ namespace Aort {
     }
 
     Ogre::ColourValue ambientColour;
+    Ogre::ColourValue backgroundColour;
     std::vector<Ogre::Entity *> entities;
     std::vector<Triangle *> triangles;
     std::vector<Light *> lights;
+    size_t maxDepth;
     SceneNode *rootNode;
     size_t rayCount;
   };
@@ -207,6 +214,8 @@ namespace Aort {
     Ogre::LogManager::getSingletonPtr()->logMessage("Rendering...");
     // set ambient colour
     d->ambientColour = Ogre::ColourValue(0.0f, 0.0f, 0.0f);
+    d->backgroundColour = Ogre::ColourValue(0.0f, 0.0f, 0.0f);
+    d->maxDepth = 3;
     // create empty image
     unsigned char *result = new unsigned char[height * width * 4];
     // precalculate 1/width and 1/height

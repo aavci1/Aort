@@ -249,6 +249,7 @@ namespace Aort {
     Ogre::LogManager::getSingletonPtr()->logMessage("Finished.");
     Ogre::LogManager::getSingletonPtr()->logMessage("Number of triangles: " + Ogre::StringConverter::toString(d->triangles.size()));
     Ogre::LogManager::getSingletonPtr()->logMessage("Number of rays: " + Ogre::StringConverter::toString(d->rayCount));
+    Ogre::LogManager::getSingletonPtr()->logMessage("Number of ray triangle intersections: " + Ogre::StringConverter::toString(d->rootNode->intersectionCount));
     // delete rootNode
     delete d->rootNode;
     d->rootNode = 0;

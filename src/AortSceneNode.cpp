@@ -30,6 +30,8 @@ namespace Aort {
     return s1.type < s2.type;
   }
 
+  size_t SceneNode::intersectionCount = 0;
+
   SceneNode::SceneNode() : data(6), splitPosition(0) {
   }
 
@@ -50,6 +52,9 @@ namespace Aort {
       t = FLT_MAX;
       for (Triangle **it = triangles(); *it != 0; ++it) {
         Ogre::Real _t = FLT_MAX, _u = 0, _v = 0;
+        // increase intersection count
+        intersectionCount++;
+        // check intersection
         if ((*it)->intersects(ray, _t, _u, _v) && _t >= t_min && _t <= t_max && _t < t) {
           triangle = *it;
           t = _t;
@@ -84,6 +89,8 @@ namespace Aort {
     if (isLeaf()) {
       for (Triangle **it = triangles(); *it != 0; ++it) {
         Ogre::Real _t = FLT_MAX, _u = 0, _v = 0;
+        // increase intersection count
+        intersectionCount++;
         // if intersects and intersection is between the t_min and t_max
         if ((*it)->intersects(ray, _t, _u, _v) && _t >= t_min && _t <= t_max)
           return true;

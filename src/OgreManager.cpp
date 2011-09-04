@@ -113,6 +113,13 @@ Ogre::Camera *OgreManager::createCamera(const QString &name) {
   return d->sceneManager->createCamera(name.toStdString());
 }
 
+const QString OgreManager::supportedFormats() const {
+  std::string extensions;
+  // get supported extensions
+  Assimp::Importer().GetExtensionList(extensions);
+  // return as qstring
+  return QString::fromStdString(extensions).replace(";", " ").prepend("*.mesh ");
+}
 
 Ogre::Entity *OgreManager::loadMesh(const QString &path) {
   Ogre::String source = path.toStdString();

@@ -96,7 +96,7 @@ void MainWindow::wheelMoved(QWheelEvent *event) {
 }
 
 void MainWindow::open() {
-  QString path = QFileDialog::getOpenFileName(this, tr("Open File"), QDesktopServices::storageLocation(QDesktopServices::DocumentsLocation), tr("Mesh Files (*.mesh)"));
+  QString path = QFileDialog::getOpenFileName(this, tr("Open File"), QDesktopServices::storageLocation(QDesktopServices::DocumentsLocation), tr("All Supported Formats (%1)").arg(OgreManager::instance()->supportedFormats()));
   // return if open canceled
   if (path.isNull())
     return;

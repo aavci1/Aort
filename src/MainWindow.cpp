@@ -122,15 +122,16 @@ void MainWindow::render() {
   // TODO: make image size configurable
   int width = 800;
   int height = 545;
+  int fsaa = 1;
   // render the scene
-  unsigned char *data = Aort::Renderer().render(OgreManager::instance()->sceneManager()->getRootSceneNode(), camera, width, height);
+  unsigned char *data = Aort::Renderer().render(OgreManager::instance()->sceneManager()->getRootSceneNode(), camera, width * fsaa, height * fsaa);
   // construct default file name
   QString fileName = QString("render-%1-%2x%3.png").arg(QDateTime::currentDateTime().toString("yyyyMMddHHmm")).arg(width).arg(height);
   // get path from the user
   QString path = QFileDialog::getSaveFileName(this, tr("Save File"), QDesktopServices::storageLocation(QDesktopServices::DocumentsLocation) + "/" + fileName, tr("Image Files (*.png *.jpg *.jpeg)"));
   // save image
   if (!path.isNull())
-    QImage(data, width, height, QImage::Format_ARGB32_Premultiplied).save(path);
+    QImage(data, width * fsaa, height * fsaa, QImage::Format_ARGB32_Premultiplied).scaled(width, height, Qt::IgnoreAspectRatio, Qt::SmoothTransformation).save(path);
   // clean up
   delete data;
 }

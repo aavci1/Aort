@@ -11,7 +11,8 @@ namespace Aort {
     Renderer();
     ~Renderer();
 
-    unsigned char *render(Ogre::SceneNode *root, const Ogre::Camera *camera, const int width, const int height);
+    void preprocess(Ogre::SceneNode *root);
+    unsigned char *render(const Ogre::Camera *camera, const int width, const int height);
 
   private:
     RendererPrivate *d;

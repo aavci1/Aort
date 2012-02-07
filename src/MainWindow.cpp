@@ -13,6 +13,7 @@
 #include <QMouseEvent>
 #include <QSettings>
 #include <QWheelEvent>
+#include <QTimer>
 
 #include <OGRE/OgreCamera.h>
 #include <OGRE/OgreEntity.h>
@@ -123,8 +124,20 @@ void MainWindow::render() {
   int width = 800;
   int height = 545;
   int fsaa = 1;
+  // create renderer
+  Aort::Renderer *renderer = new Aort::Renderer();
+  // create timer
+  QTime timer;
+  // preprocess the scene
+  timer.start();
+  renderer->preprocess(OgreManager::instance()->sceneManager()->getRootSceneNode());
+  Ogre::LogManager::getSingletonPtr()->logMessage(QString("Preprocess time: %1").arg(timer.elapsed()).toStdString());
   // render the scene
-  unsigned char *data = Aort::Renderer().render(OgreManager::instance()->sceneManager()->getRootSceneNode(), camera, width * fsaa, height * fsaa);
+  timer.restart();
+  unsigned char *data = renderer->render(camera, width * fsaa, height * fsaa);
+  Ogre::LogManager::getSingletonPtr()->logMessage(QString("Render time: %1").arg(timer.elapsed()).toStdString());
+  // clean up
+  delete renderer;
   // construct default file name
   QString fileName = QString("render-%1-%2x%3.png").arg(QDateTime::currentDateTime().toString("yyyyMMddHHmm")).arg(width).arg(height);
   // get path from the user
@@ -134,6 +147,7 @@ void MainWindow::render() {
     QImage(data, width * fsaa, height * fsaa, QImage::Format_ARGB32_Premultiplied).scaled(width, height, Qt::IgnoreAspectRatio, Qt::SmoothTransformation).save(path);
   // clean up
   delete data;
+
 }
 
 void MainWindow::help() {

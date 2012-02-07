@@ -203,13 +203,16 @@ namespace Aort {
     delete d;
   }
 
-  unsigned char *Renderer::render(Ogre::SceneNode *root, const Ogre::Camera *camera, const int width, const int height) {
+  void Renderer::preprocess(Ogre::SceneNode *root) {
     // log message
     Ogre::LogManager::getSingletonPtr()->logMessage("Building...");
     // extract entities and lights
     d->traverse(root);
     // build tree
     d->buildTree();
+  }
+
+  unsigned char *Renderer::render(const Ogre::Camera *camera, const int width, const int height) {
     // log message
     Ogre::LogManager::getSingletonPtr()->logMessage("Rendering...");
     // set ambient colour

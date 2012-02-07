@@ -11,7 +11,7 @@ include (${QT_USE_FILE})
 
 include_directories (${CMAKE_BINARY_DIR} ${CMAKE_SOURCE_DIR}/src)
 # enable openmp support
-set (CMAKE_CXX_FLAGS "-fopenmp")
+set (CMAKE_CXX_FLAGS "-O3 -ftree-vectorize -msse -msse2 -msse3 -mssse3 -fvariable-expansion-in-unroller -fopenmp -Wall")
 # add sources
 set (SOURCES
   src/AortLight.cpp

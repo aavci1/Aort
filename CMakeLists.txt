@@ -21,11 +21,11 @@ set (SOURCES
   src/AortSceneNode.cpp
   src/AortTexture.cpp
   src/AortTriangle.cpp
-  src/LanguageManager.cpp
   src/Main.cpp
   src/MainWindow.cpp
   src/OgreManager.cpp
   src/OgreWidget.cpp
+  src/TranslationManager.cpp
  )
 # add ui files
 qt4_wrap_ui (UI_SOURCES
@@ -33,10 +33,10 @@ qt4_wrap_ui (UI_SOURCES
 )
 # add moc headers
 qt4_wrap_cpp (MOC_SOURCES
-  src/LanguageManager.h
   src/MainWindow.h
   src/OgreManager.h
   src/OgreWidget.h
+  src/TranslationManager.h
 )
 # add resources
 qt4_add_resources (RESOURCES

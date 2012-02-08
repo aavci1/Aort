@@ -7,6 +7,8 @@
 
 #include "ui_MainWindow.h"
 
+class TranslationManager;
+
 class MainWindow : public QMainWindow, public Ui::MainWindow {
   Q_OBJECT
 public:
@@ -29,6 +31,7 @@ private slots:
   void windowCreated();
 
 private:
+  TranslationManager *mTranslationManager;
   Ogre::SceneNode *cameraNode;
   Ogre::SceneNode *objectNode;
   Ogre::Camera *camera;

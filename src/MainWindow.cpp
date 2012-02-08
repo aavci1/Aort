@@ -1,8 +1,8 @@
 #include "MainWindow.h"
 
 #include "AortRenderer.h"
-#include "LanguageManager.h"
 #include "OgreManager.h"
+#include "TranslationManager.h"
 
 #include <QDateTime>
 #include <QDesktopServices>
@@ -14,6 +14,7 @@
 #include <QSettings>
 #include <QWheelEvent>
 #include <QTimer>
+#include <QToolButton>
 
 #include <OGRE/OgreCamera.h>
 #include <OGRE/OgreEntity.h>
@@ -22,35 +23,32 @@
 #include <OGRE/OgreSceneManager.h>
 #include <OGRE/OgreViewport.h>
 
-MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), Ui::MainWindow(), cameraNode(0), objectNode(0), camera(0), viewport(0) {
+MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), Ui::MainWindow(), mTranslationManager(new TranslationManager()), cameraNode(0), objectNode(0), camera(0), viewport(0) {
   setupUi(this);
   // set window title
   setWindowTitle(tr("Untitled - Aort"));
-  // load languages
-  LanguageManager::instance()->loadTranslation(QString("tr"), QString::fromUtf8("Türkçe"));
-  // load language settings
-  QString language = QSettings().value("Language", "").toString();
-  // try to load saved language, if cant try to load system language
-  if (LanguageManager::instance()->languages().contains(language))
-    LanguageManager::instance()->selectLanguage(language);
-  else if (LanguageManager::instance()->languages().contains(QLocale::system().name().section("_", 0, 0, QString::SectionSkipEmpty)))
-    LanguageManager::instance()->selectLanguage(QLocale::system().name().section("_", 0, 0, QString::SectionSkipEmpty));
-  // create the languages menu
+  // create the language menu actions
   QActionGroup *actionGroupLanguages = new QActionGroup(this);
   actionGroupLanguages->setExclusive(true);
-  QStringList codes = LanguageManager::instance()->languages().keys();
-  QStringList names = LanguageManager::instance()->languages().values();
+  QStringList codes = mTranslationManager->translations().keys();
+  QStringList names = mTranslationManager->translations().values();
   for (int i = 0; i < codes.count(); ++i) {
     QAction *action = new QAction(names.at(i), actionGroupLanguages);
     action->setCheckable(true);
     action->setData(codes.at(i));
-    action->setChecked(LanguageManager::instance()->currentLanguage() == codes.at(i));
+    action->setChecked(mTranslationManager->currentTranslation() == codes.at(i));
   }
   // create the language menu
   QMenu *languageMenu = new QMenu(this);
   languageMenu->addActions(actionGroupLanguages->actions());
   actionLanguage->setMenu(languageMenu);
-  // language action handler
+  // make language menu shown instantly
+  for (int i = 0; i < actionLanguage->associatedWidgets().size(); ++i) {
+    QToolButton *toolbutton= qobject_cast<QToolButton *>(actionLanguage->associatedWidgets().at(i));
+    if (toolbutton)
+      toolbutton->setPopupMode(QToolButton::InstantPopup);
+  }
+  // connect language action handler
   connect(actionGroupLanguages, SIGNAL(triggered(QAction*)), this, SLOT(translate(QAction*)));
   // main window action handlers
   connect(actionOpen, SIGNAL(triggered()), this, SLOT(open()));
@@ -66,6 +64,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), Ui::MainWindow(),
 }
 
 MainWindow::~MainWindow() {
+  delete mTranslationManager;
 }
 
 void MainWindow::changeEvent(QEvent *e) {
@@ -113,10 +112,7 @@ void MainWindow::open() {
 }
 
 void MainWindow::translate(QAction *action) {
-  // select language
-  LanguageManager::instance()->selectLanguage(action->data().toString());
-  // save language settings
-  QSettings().setValue("Language", action->data().toString());
+  mTranslationManager->loadTranslation(action->data().toString());
 }
 
 void MainWindow::render() {

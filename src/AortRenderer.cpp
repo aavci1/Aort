@@ -6,6 +6,8 @@
 #include "AortSceneNode.h"
 #include "AortTriangle.h"
 
+#include <QTime>
+
 #include <OGRE/OgreCamera.h>
 #include <OGRE/OgreColourValue.h>
 #include <OGRE/OgreEntity.h>
@@ -203,24 +205,26 @@ namespace Aort {
     delete d;
   }
 
-  void Renderer::preprocess(Ogre::SceneNode *root) {
-    // log message
-    Ogre::LogManager::getSingletonPtr()->logMessage("Building...");
+  int Renderer::preprocess(Ogre::SceneNode *root) {
+    QTime time;
+    time.start();
     // extract entities and lights
     d->traverse(root);
     // build tree
     d->buildTree();
+    // return elapsed time
+    return time.elapsed();
   }
 
-  unsigned char *Renderer::render(const Ogre::Camera *camera, const int width, const int height) {
+  int Renderer::render(const Ogre::Camera *camera, const int width, const int height, uchar *buffer) {
+    QTime time;
+    time.start();
     // log message
     Ogre::LogManager::getSingletonPtr()->logMessage("Rendering...");
     // set ambient colour
     d->ambientColour = Ogre::ColourValue(0.0f, 0.0f, 0.0f);
     d->backgroundColour = Ogre::ColourValue(0.0f, 0.0f, 0.0f);
     d->maxDepth = 3;
-    // create empty image
-    unsigned char *result = new unsigned char[height * width * 4];
     // precalculate 1/width and 1/height
     Ogre::Real inverseWidth = 1.0f / width;
     Ogre::Real inverseHeight = 1.0f / height;
@@ -230,12 +234,11 @@ namespace Aort {
 #endif // !NO_OMP
     // start rendering
     for (size_t y = 0; y < height; ++y) {
-      unsigned char *scanline = result + y * width * 4;
+      uchar *scanline = buffer + y * width * 4;
       for (size_t x = 0; x < width; ++x) {
         // create camera to viewport ray
         // and make sure that rays are not parallel to any axis
-        Ogre::Ray ray = camera->getCameraToViewportRay(x * inverseWidth + std::numeric_limits<float>::epsilon(),
-                        y * inverseHeight + std::numeric_limits<float>::epsilon());
+        Ogre::Ray ray = camera->getCameraToViewportRay(x * inverseWidth + std::numeric_limits<float>::epsilon(), y * inverseHeight + std::numeric_limits<float>::epsilon());
         // trace the ray
         Ogre::ColourValue colour = d->traceRay(ray);
         // update image
@@ -268,7 +271,7 @@ namespace Aort {
     d->lights.clear();
     // clean up entities
     d->entities.clear();
-    // return result
-    return result;
+    // return elapsed time
+    return time.elapsed();
   }
 }

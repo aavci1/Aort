@@ -5,6 +5,7 @@
 #include "TranslationManager.h"
 
 #include <QDateTime>
+#include <QDebug>
 #include <QDesktopServices>
 #include <QFileDialog>
 #include <QLocale>
@@ -122,16 +123,12 @@ void MainWindow::render() {
   int fsaa = 1;
   // create renderer
   Aort::Renderer *renderer = new Aort::Renderer();
-  // create timer
-  QTime timer;
-  // preprocess the scene
-  timer.start();
-  renderer->preprocess(OgreManager::instance()->sceneManager()->getRootSceneNode());
-  Ogre::LogManager::getSingletonPtr()->logMessage(QString("Preprocess time: %1").arg(timer.elapsed()).toStdString());
-  // render the scene
-  timer.restart();
-  unsigned char *data = renderer->render(camera, width * fsaa, height * fsaa);
-  Ogre::LogManager::getSingletonPtr()->logMessage(QString("Render time: %1").arg(timer.elapsed()).toStdString());
+  // do preprocess
+  qDebug() << "Preprocessing finished in" << renderer->preprocess(OgreManager::instance()->sceneManager()->getRootSceneNode()) << "ms";
+  // create buffer
+  uchar *buffer = new uchar[width * fsaa * height * fsaa * 4];
+  // do render
+  qDebug() << "Render time:" << renderer->render(camera, width * fsaa, height * fsaa, buffer);
   // clean up
   delete renderer;
   // construct default file name
@@ -140,9 +137,9 @@ void MainWindow::render() {
   QString path = QFileDialog::getSaveFileName(this, tr("Save File"), QDesktopServices::storageLocation(QDesktopServices::DocumentsLocation) + "/" + fileName, tr("Image Files (*.png *.jpg *.jpeg)"));
   // save image
   if (!path.isNull())
-    QImage(data, width * fsaa, height * fsaa, QImage::Format_ARGB32_Premultiplied).scaled(width, height, Qt::IgnoreAspectRatio, Qt::SmoothTransformation).save(path);
+    QImage(buffer, width * fsaa, height * fsaa, QImage::Format_ARGB32_Premultiplied).scaled(width, height, Qt::IgnoreAspectRatio, Qt::SmoothTransformation).save(path);
   // clean up
-  delete data;
+  delete buffer;
 
 }
 

@@ -7,7 +7,7 @@
 namespace Aort {
   class MaterialPrivate {
   public:
-    MaterialPrivate() : ambient(1.0f, 1.0f, 1.0f), diffuse(1.0f, 1.0f, 1.0f), specular(0.0f, 0.0f, 0.0f), shininess(0.0f), reflectivity(0.25f), texture(0) {
+    MaterialPrivate() : ambient(1.0f, 1.0f, 1.0f), diffuse(1.0f, 1.0f, 1.0f), specular(0.0f, 0.0f, 0.0f), shininess(0.0f), reflectivity(0.05f), texture(0) {
     }
 
     ~MaterialPrivate() {

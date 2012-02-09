@@ -24,7 +24,7 @@
 #include <OGRE/OgreSceneManager.h>
 #include <OGRE/OgreViewport.h>
 
-MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), Ui::MainWindow(), mTranslationManager(new TranslationManager()), cameraNode(0), objectNode(0), camera(0), viewport(0) {
+MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), Ui::MainWindow(), mTranslationManager(new TranslationManager()), objectNode(0), camera(0), viewport(0) {
   setupUi(this);
   // set window title
   setWindowTitle(tr("Untitled - Aort"));
@@ -58,6 +58,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), Ui::MainWindow(),
   connect(actionAbout, SIGNAL(triggered()), this, SLOT(about()));
   // ogre widget handlers
   connect(ogreWidget, SIGNAL(windowCreated()), this, SLOT(windowCreated()));
+  connect(ogreWidget, SIGNAL(mousePressed(QMouseEvent*)), this, SLOT(mousePressed(QMouseEvent*)));
   connect(ogreWidget, SIGNAL(mouseMoved(QMouseEvent*)), this, SLOT(mouseMoved(QMouseEvent*)));
   connect(ogreWidget, SIGNAL(wheelMoved(QWheelEvent*)), this, SLOT(wheelMoved(QWheelEvent*)));
   // initialize ogre manager
@@ -73,25 +74,33 @@ void MainWindow::changeEvent(QEvent *e) {
     retranslateUi(this);
 }
 
-void MainWindow::mouseMoved(QMouseEvent *event) {
-  if (event->buttons() == Qt::LeftButton) {
-    // rotate camera
-    cameraNode->getParentSceneNode()->yaw(Ogre::Degree(-0.25f * (event->x() - mousePosition.x())));
-    cameraNode->getParentSceneNode()->pitch(Ogre::Degree(-0.25f * (event->y() - mousePosition.y())));
+void MainWindow::mousePressed(QMouseEvent *e) {
+  panStart = e->pos();
+}
+
+void MainWindow::mouseMoved(QMouseEvent *e) {
+  if (e->buttons() == Qt::RightButton) {
+    // update camera position
+    camera->moveRelative(Ogre::Vector3(panStart.x() - e->pos().x(), e->pos().y() - panStart.y(), 0));
+    // update pan start
+    panStart = e->pos();
     // update view
     ogreWidget->update();
-  } else if (event->buttons() == Qt::RightButton) {
-    // update camera position
-    cameraNode->translate(Ogre::Vector3(mousePosition.x() - event->pos().x(), event->pos().y() - mousePosition.y(), 0));
+  } else if (e->buttons() == Qt::MiddleButton) {
+    // rotate camera
+    camera->yaw(Ogre::Degree(-0.1f * (e->x() - mousePosition.x())));
+    camera->pitch(Ogre::Degree(-0.1f * (e->y() - mousePosition.y())));
     // update view
     ogreWidget->update();
   }
   // update mouse position
-  mousePosition = event->pos();
+  mousePosition = e->pos();
 }
 
-void MainWindow::wheelMoved(QWheelEvent *event) {
-  cameraNode->translate(0.0f, 0.0f, -0.05f * event->delta());
+void MainWindow::wheelMoved(QWheelEvent *e) {
+  float altitude = camera->getPosition().y;
+  camera->moveRelative(Ogre::Vector3(0, 0, -0.4f * e->delta()));
+  camera->setPosition(camera->getPosition().x, altitude, camera->getPosition().z);
   // update view
   ogreWidget->update();
 }
@@ -128,7 +137,7 @@ void MainWindow::render() {
   // create buffer
   uchar *buffer = new uchar[width * fsaa * height * fsaa * 4];
   // do render
-  qDebug() << "Render time:" << renderer->render(camera, width * fsaa, height * fsaa, buffer);
+  qDebug() << "Rendering finished in" << renderer->render(camera, width * fsaa, height * fsaa, buffer) << "ms";
   // clean up
   delete renderer;
   // construct default file name
@@ -165,38 +174,10 @@ void MainWindow::windowCreated() {
   camera->setNearClipDistance(10.0f);
   camera->setFarClipDistance(10000.0f);
   camera->setAutoAspectRatio(true);
+  // set camera position and orientation
+  camera->setPosition(Ogre::Vector3(0, 180, 0));
+  camera->setOrientation(Ogre::Quaternion(1, 0, 0, 0));
   // create viewport
   viewport = ogreWidget->renderWindow()->addViewport(camera);
   viewport->setBackgroundColour(Ogre::ColourValue(0, 0, 0));
-  // create camera node
-  cameraNode = OgreManager::instance()->sceneManager()->getRootSceneNode()->createChildSceneNode()->createChildSceneNode(Ogre::Vector3(0.0f, 0.0f, 300.0f));
-  cameraNode->getParentSceneNode()->yaw(Ogre::Degree(30.0f));
-  cameraNode->getParentSceneNode()->pitch(Ogre::Degree(-30.0f));
-  cameraNode->lookAt(Ogre::Vector3(0.0f, 65.0f, 0.0f), Ogre::SceneNode::TS_WORLD);
-  // attach camera to the node
-  cameraNode->attachObject(camera);
-  // create object node
-  objectNode = OgreManager::instance()->sceneManager()->getRootSceneNode()->createChildSceneNode();
-  // create floor plane
-  Ogre::MeshManager::getSingletonPtr()->createPlane("Floor", Ogre::ResourceGroupManager::DEFAULT_RESOURCE_GROUP_NAME, Ogre::Plane(Ogre::Vector3::UNIT_Y, 0), 10000, 10000, 1, 1, true, 1, 100, 100, Ogre::Vector3::UNIT_Z);
-  // create floor entity
-  Ogre::Entity *floor = OgreManager::instance()->sceneManager()->createEntity("Floor");
-  // assign a texture to the floor
-  floor->setMaterialName("Floor/Laminate");
-  // add the floor to the scene
-  OgreManager::instance()->sceneManager()->getRootSceneNode()->createChildSceneNode()->attachObject(floor);
-  // create a light
-  Ogre::Light *light = OgreManager::instance()->sceneManager()->createLight();
-  light->setType(Ogre::Light::LT_DIRECTIONAL);
-  light->setDiffuseColour(0.5f, 0.5f, 0.5f);
-  light->setSpecularColour(1.0f, 1.0f, 1.0f);
-  // attach the light to the scene
-  OgreManager::instance()->sceneManager()->getRootSceneNode()->createChildSceneNode(Ogre::Vector3(0.0f, 500.0f, 0.0f))->attachObject(light);
-  // create a head light
-  Ogre::Light *headLight = OgreManager::instance()->sceneManager()->createLight();
-  headLight->setType(Ogre::Light::LT_POINT);
-  headLight->setDiffuseColour(0.5f, 0.5f, 0.5f);
-  headLight->setSpecularColour(1.0f, 1.0f, 1.0f);
-  // attach light to the camera node
-  cameraNode->attachObject(headLight);
 }

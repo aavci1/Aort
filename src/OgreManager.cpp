@@ -40,6 +40,10 @@ public:
   Ogre::Root *root;
   Ogre::SceneManager *sceneManager;
   QList<Ogre::RenderWindow *> windows;
+  Ogre::SceneNode *floorNode;
+  Ogre::SceneNode *ceilingNode;
+  Ogre::Entity *floor;
+  Ogre::Entity *ceiling;
 };
 
 OgreManager::OgreManager(MainWindow *parent) : QObject(parent), d(new OgreManagerPrivate()) {
@@ -63,9 +67,9 @@ OgreManager::OgreManager(MainWindow *parent) : QObject(parent), d(new OgreManage
   // create 1x1 top level window
   createWindow(parent, 1, 1);
   // add resource locations
-  Ogre::ResourceGroupManager::getSingleton().addResourceLocation("media/materials", "FileSystem");
-  Ogre::ResourceGroupManager::getSingleton().addResourceLocation("media/meshes", "FileSystem");
-  Ogre::ResourceGroupManager::getSingleton().addResourceLocation("media/textures", "FileSystem");
+  Ogre::ResourceGroupManager::getSingleton().addResourceLocation("media/materials", "FileSystem", "General");
+  Ogre::ResourceGroupManager::getSingleton().addResourceLocation("media/elements/meshes", "FileSystem", "General");
+  Ogre::ResourceGroupManager::getSingleton().addResourceLocation("media/textures", "FileSystem", "General");
   // load resources
   Ogre::ResourceGroupManager::getSingleton().initialiseAllResourceGroups();
   // create the scene manager
@@ -74,6 +78,32 @@ OgreManager::OgreManager(MainWindow *parent) : QObject(parent), d(new OgreManage
   d->sceneManager->setShadowTechnique(Ogre::SHADOWTYPE_NONE);
   // set up ambient light
   d->sceneManager->setAmbientLight(Ogre::ColourValue(0.1f, 0.1f, 0.1f));
+  // TODO: create floor and ceiling objects such that the center of the texture is the center of the plane
+  // create floor object
+  Ogre::MeshManager::getSingleton().createPlane("Floor", Ogre::ResourceGroupManager::DEFAULT_RESOURCE_GROUP_NAME, Ogre::Plane(Ogre::Vector3::UNIT_Y, 0), 10000, 10000, 50, 50, true, 1, 100.0f, 100.0f, Ogre::Vector3::UNIT_Z);
+  // create the floor object
+  d->floor = d->sceneManager->createEntity("Floor");
+  d->floor->setMaterialName("Floor/White");
+  d->floor->setCastShadows(false);
+  // create floor node
+  d->floorNode = d->sceneManager->getRootSceneNode()->createChildSceneNode();
+  d->floorNode->attachObject(d->floor);
+  // create ceiling object
+  Ogre::MeshManager::getSingleton().createPlane("Ceiling", Ogre::ResourceGroupManager::DEFAULT_RESOURCE_GROUP_NAME, Ogre::Plane(-Ogre::Vector3::UNIT_Y, 0), 10000, 10000, 50, 50, true, 1, 100.0f, 100.0f, Ogre::Vector3::UNIT_Z);
+  d->ceiling = d->sceneManager->createEntity("Ceiling");
+  d->ceiling->setMaterialName("Ceiling/White");
+  d->ceiling->setCastShadows(false);
+  // create the ceiling node
+  d->ceilingNode = d->sceneManager->getRootSceneNode()->createChildSceneNode();
+  d->ceilingNode->setPosition(0.0f, 300.0f, 0.0f);
+  d->ceilingNode->attachObject(d->ceiling);
+  // create a light
+  Ogre::Light *light = OgreManager::instance()->sceneManager()->createLight();
+  light->setType(Ogre::Light::LT_DIRECTIONAL);
+  light->setDiffuseColour(0.5f, 0.5f, 0.5f);
+  light->setSpecularColour(1.0f, 1.0f, 1.0f);
+  // attach the light to the scene
+  OgreManager::instance()->sceneManager()->getRootSceneNode()->createChildSceneNode(Ogre::Vector3(0.0f, 295.0f, 0.0f))->attachObject(light);
 }
 
 OgreManager::~OgreManager() {

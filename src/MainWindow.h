@@ -19,8 +19,9 @@ protected:
   void changeEvent(QEvent *e);
 
 public slots:
-  void mouseMoved(QMouseEvent *event);
-  void wheelMoved(QWheelEvent *event);
+  void mousePressed(QMouseEvent *e);
+  void mouseMoved(QMouseEvent *e);
+  void wheelMoved(QWheelEvent *e);
 
 private slots:
   void open();
@@ -32,10 +33,10 @@ private slots:
 
 private:
   TranslationManager *mTranslationManager;
-  Ogre::SceneNode *cameraNode;
   Ogre::SceneNode *objectNode;
   Ogre::Camera *camera;
   Ogre::Viewport *viewport;
+  QPoint panStart;
   QPoint mousePosition;
 };
 

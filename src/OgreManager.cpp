@@ -67,7 +67,7 @@ OgreManager::OgreManager(MainWindow *parent) : QObject(parent), d(new OgreManage
   // create 1x1 top level window
   createWindow(parent, 1, 1);
   // add resource locations
-  Ogre::ResourceGroupManager::getSingleton().addResourceLocation("media/materials", "FileSystem", "General");
+  Ogre::ResourceGroupManager::getSingleton().addResourceLocation("media/scripts", "FileSystem", "General");
   Ogre::ResourceGroupManager::getSingleton().addResourceLocation("media/elements/meshes", "FileSystem", "General");
   Ogre::ResourceGroupManager::getSingleton().addResourceLocation("media/textures", "FileSystem", "General");
   // load resources
@@ -83,7 +83,7 @@ OgreManager::OgreManager(MainWindow *parent) : QObject(parent), d(new OgreManage
   Ogre::MeshManager::getSingleton().createPlane("Floor", Ogre::ResourceGroupManager::DEFAULT_RESOURCE_GROUP_NAME, Ogre::Plane(Ogre::Vector3::UNIT_Y, 0), 10000, 10000, 50, 50, true, 1, 100.0f, 100.0f, Ogre::Vector3::UNIT_Z);
   // create the floor object
   d->floor = d->sceneManager->createEntity("Floor");
-  d->floor->setMaterialName("Floor/White");
+  d->floor->setMaterialName("Floor/1");
   d->floor->setCastShadows(false);
   // create floor node
   d->floorNode = d->sceneManager->getRootSceneNode()->createChildSceneNode();

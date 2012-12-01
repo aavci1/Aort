@@ -137,11 +137,11 @@ void MainWindow::render() {
   // create buffer
   uchar *buffer = new uchar[width * fsaa * height * fsaa * 4];
   // do render
-  qDebug() << "Rendering finished in" << renderer->render(camera, width * fsaa, height * fsaa, buffer) << "ms";
+  int time = renderer->render(camera, width * fsaa, height * fsaa, buffer);
   // clean up
   delete renderer;
   // construct default file name
-  QString fileName = QString("render-%1-%2x%3.png").arg(QDateTime::currentDateTime().toString("yyyyMMddHHmm")).arg(width).arg(height);
+  QString fileName = QString("render-%1-%2x%3-%4xAA-%5ms.png").arg(QDateTime::currentDateTime().toString("yyyyMMddHHmm")).arg(width).arg(height).arg(fsaa).arg(time);
   // get path from the user
   QString path = QFileDialog::getSaveFileName(this, tr("Save File"), QDesktopServices::storageLocation(QDesktopServices::DocumentsLocation) + "/" + fileName, tr("Image Files (*.png *.jpg *.jpeg)"));
   // save image
@@ -180,4 +180,6 @@ void MainWindow::windowCreated() {
   // create viewport
   viewport = ogreWidget->renderWindow()->addViewport(camera);
   viewport->setBackgroundColour(Ogre::ColourValue(0, 0, 0));
+  // create object node
+  objectNode = OgreManager::instance()->sceneManager()->getRootSceneNode()->createChildSceneNode();
 }
